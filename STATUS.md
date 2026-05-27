@@ -24,28 +24,30 @@ Königin gefunden Marly CH. Reagenzglas-Setup. Büro ~23 °C.
 Phase:           1 — Reagenzglas, kein Sensor
 ESP32:           [ ] noch nicht verbaut
 HA-Integration:  [ ] noch nicht konfiguriert
-Korknest v1:     [ ] Design ausstehend
+Korknest v1:     [~] F360 Scripts + Verifikation bereit, lokale Session ausstehend
 Fusion 360 MCP:  [x] lokal verbunden, bereit
 ```
 
 ## Offene Entscheidungen
-- [ ] Nest-Design: Topdown-Block vs. gestapelte Platten → Fusion 360 Session nötig
+- [x] Nest-Design: ✅ Gestapelte Platten (4 Layer, 200×200×20mm)
 - [ ] ESP32: ESPHome vs. custom MQTT Firmware → Entscheidung ausstehend
 - [ ] CNC-Ressource: Eigene Fräse oder Dienstleister?
 
 ## Letzte Session
 ```
 Datum:    27.05.2026
-Umgebung: claude.ai (Cloud)
-Output:   - Projekt-Beschreibung erstellt (FORMICA-OS_PROJECT.md)
-          - Logbuch-Artifact initialisiert (React)
-          - CLAUDE.md + STATUS.md erstellt
-          - Repo-Struktur definiert
+Umgebung: Claude Code (Cloud/Remote)
+Output:   - CLAUDE.md überarbeitet (Architektur-Diagramm, Build-Kommandos)
+          - F360 MCP Workflow geplant und implementiert
+          - scripts/fusion360/ erstellt (parameters.py, layer_01-03, verify_dxf.py)
+          - cad/korknest_v1/exports/ Verzeichnis angelegt
+          - Nest-Design Entscheidung getroffen: Stacked Plates ✅
 ```
 
 ## Nächste geplante Sessions
 | Umgebung | Aufgabe |
 |----------|---------|
-| Claude Code (Lokal) | Korknest Layer 1 in Fusion 360 — Grundriss definieren |
+| Claude Code (Lokal) | F360 öffnen → layer_01_water.py ausführen → DXF exportieren → verifizieren |
+| Claude Code (Lokal) | Layer 02+03 Scripts ausführen, Kammer-Layout anpassen |
 | claude.ai (Cloud) | Logbuch-Update sobald Eier sichtbar |
 | Claude Code (Lokal) | ESP32 PlatformIO-Setup + MQTT-Skeleton |
