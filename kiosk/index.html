@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<!--
+  FORMICA-OS Kiosk — Hauptseite
+  Dient von nginx auf dem Raspberry Pi 4.
+
+  Lädt:  /stream  → MJPEG-Videostream vom ESP32-S3 AI CAM
+  Sendet: /ir     → IR-LED PWM direkt an ESP32 (HTTP GET)
+
+  Offline-fähig: keine externen Ressourcen, kein CDN.
+  Für Touchscreen optimiert (48px Touch-Targets, cursor:none).
+-->
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0a0a0a">
+
+    <!-- Preconnect zum ESP32 für schnelleren Verbindungsaufbau -->
+    <link rel="preconnect" href="http://formicarium-cam1.local">
+
+    <title>FORMICA-OS · Kamera</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+    <!-- ========================================================
+         Stream-Bereich
+    ========================================================= -->
+    <div id="stream-container">
+
+        <!-- MJPEG-Stream: src wird per JS gesetzt -->
+        <img id="cam-stream"
+             alt="Formicarium Livestream"
+             draggable="false">
+
+        <!-- Hostname-Badge (oben links) -->
+        <div id="cam-badge">CAM · formicarium-cam1</div>
+
+        <!-- Reconnect-Overlay -->
+        <div id="stream-overlay" role="status" aria-live="polite">
+            <span class="status-icon" aria-hidden="true">◎</span>
+            <span id="overlay-text">Verbinde …</span>
+        </div>
+
+    </div>
+
+    <!-- ========================================================
+         Control-Bar (IR-LED Steuerung)
+    ========================================================= -->
+    <div id="control-bar" role="toolbar" aria-label="IR-LED Steuerung">
+
+        <!-- Label + Wertanzeige -->
+        <div id="ir-label-group" aria-hidden="true">
+            <span id="ir-label">IR</span>
+            <span id="ir-value" class="off">0</span>
+        </div>
+
+        <!-- Slider: fein-stufige Einstellung 0–255 -->
+        <div id="ir-slider-wrap">
+            <input id="ir-slider"
+                   type="range"
+                   min="0" max="255" step="1"
+                   value="0"
+                   aria-label="IR-LED Helligkeit"
+                   aria-valuemin="0"
+                   aria-valuemax="255">
+        </div>
+
+        <!-- Preset-Buttons: schnelle Touch-Einstellungen -->
+        <div id="preset-buttons" role="group" aria-label="IR-Schnelleinstellungen">
+
+            <button class="preset-btn"
+                    data-level="0"
+                    aria-label="IR aus"
+                    title="IR aus">
+                <span class="btn-icon" aria-hidden="true">○</span>
+                <span class="btn-label">AUS</span>
+            </button>
+
+            <button class="preset-btn"
+                    data-level="85"
+                    aria-label="IR 33%"
+                    title="IR 33%">
+                <span class="btn-icon" aria-hidden="true">◔</span>
+                <span class="btn-label">33%</span>
+            </button>
+
+            <button class="preset-btn"
+                    data-level="170"
+                    aria-label="IR 66%"
+                    title="IR 66%">
+                <span class="btn-icon" aria-hidden="true">◑</span>
+                <span class="btn-label">66%</span>
+            </button>
+
+            <button class="preset-btn"
+                    data-level="255"
+                    aria-label="IR 100%"
+                    title="IR 100%">
+                <span class="btn-icon" aria-hidden="true">●</span>
+                <span class="btn-label">100%</span>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
