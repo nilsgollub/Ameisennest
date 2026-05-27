@@ -1,0 +1,120 @@
+# ============================================================
+# FORMICA-OS — Home Assistant Package: Kameranode cam1
+#
+# Datei:   homeassistant/packages/formicarium_cam.yaml
+# Einbinden in configuration.yaml:
+#   homeassistant:
+#     packages: !include_dir_named packages/
+#
+# Entities:
+#   camera.formicarium_cam1        MJPEG-Livestream (für HA-Dashboards)
+#   light.formicarium_ir_led       IR-LED als Licht-Entity (0-255 Helligkeit)
+#   sensor.formicarium_cam1_ip     IP-Adresse aus Heartbeat
+#   binary_sensor.formicarium_cam1 Online/Offline-Status
+#
+# MQTT-Topics:
+#   formicarium/cam1/status        JSON Heartbeat (retain, 30s)
+#   formicarium/cam1/ir_level      aktueller IR-Stand 0-255 (retain)
+#   formicarium/cam1/cmd/ir_led    IR-Befehl 0-255 (HA → ESP32)
+# ============================================================
+
+# --- Kamera --------------------------------------------------
+# Einbinden in HA-Dashboards via camera.formicarium_cam1.
+# Snapshot-URL für Automationen und Benachrichtigungen.
+camera:
+  - platform: generic
+    name: "Formicarium Cam1"
+    unique_id: formicarium_cam1
+    still_image_url: "http://formicarium-cam1.local/capture"
+    stream_source:   "http://formicarium-cam1.local/stream"
+    verify_ssl: false
+    # Authentifizierung: keine (lokales Netz, kein HTTPS)
+
+# --- MQTT-Entitäten -----------------------------------------
+mqtt:
+
+  # -- IR-LED als Licht-Entity --------------------------------
+  # Ermöglicht Automationen wie "IR-Licht bei Dunkelheit",
+  # Sprachsteuerung, Dashboard-Toggle.
+  light:
+    - name: "Formicarium IR LED"
+      unique_id: formicarium_ir_led
+      # On/Off via IR-Level 0 oder 255
+      command_topic:        "formicarium/cam1/cmd/ir_led"
+      state_topic:          "formicarium/cam1/ir_level"
+      payload_on:           "255"
+      payload_off:          "0"
+      # Helligkeitssteuerung 0-255 (gleiche Topics wie On/Off)
+      brightness_command_topic:  "formicarium/cam1/cmd/ir_led"
+      brightness_state_topic:    "formicarium/cam1/ir_level"
+      brightness_scale: 255
+      # State ON wenn ir_level > 0
+      on_command_type: brightness
+      optimistic: false
+      retain: true
+
+  # -- Heartbeat-Status-Sensor --------------------------------
+  sensor:
+    - name: "Formicarium Cam1 IP"
+      unique_id: formicarium_cam1_ip
+      state_topic: "formicarium/cam1/status"
+      value_template: "{{ value_json.ip }}"
+      icon: mdi:ip-network
+      expire_after: 120  # nach 2× Heartbeat-Intervall unavailable
+
+    - name: "Formicarium Cam1 Uptime"
+      unique_id: formicarium_cam1_uptime
+      state_topic: "formicarium/cam1/status"
+      value_template: "{{ value_json.uptime_s | int }}"
+      unit_of_measurement: "s"
+      icon: mdi:timer-outline
+      expire_after: 120
+
+  # -- Online/Offline Binary Sensor ---------------------------
+  binary_sensor:
+    - name: "Formicarium Cam1"
+      unique_id: formicarium_cam1_online
+      state_topic: "formicarium/cam1/status"
+      value_template: "{{ value_json.online }}"
+      payload_on:  "True"
+      payload_off: "False"
+      device_class: connectivity
+      expire_after: 120  # gilt als offline wenn kein Heartbeat
+
+# --- Automationen -------------------------------------------
+automation:
+
+  # IR-LED automatisch ausschalten wenn HA-Nacht-Profil aktiv
+  # (verhindert versehentlich dauerhaft aktive IR-Strahlung)
+  - alias: "Formicarium IR LED Nacht-Aus"
+    id: formicarium_ir_off_night
+    description: "IR-LEDs um Mitternacht ausschalten falls vergessen"
+    trigger:
+      - platform: time
+        at: "00:00:00"
+    condition:
+      - condition: state
+        entity_id: light.formicarium_ir_led
+        state: "on"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.formicarium_ir_led
+    mode: single
+
+  # Benachrichtigung wenn Kamera offline geht
+  - alias: "Formicarium Kamera Offline Alert"
+    id: formicarium_cam_offline_alert
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.formicarium_cam1
+        to: "off"
+        for:
+          minutes: 2
+    action:
+      - service: persistent_notification.create
+        data:
+          title: "FORMICA-OS Kamera Offline"
+          message: "formicarium-cam1 sendet keinen Heartbeat mehr."
+          notification_id: "formicarium_cam_offline"
+    mode: single

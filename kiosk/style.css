@@ -1,0 +1,269 @@
+/*
+ * FORMICA-OS Kiosk — Styles
+ *
+ * Design-Prinzipien:
+ *   - #0a0a0a Hintergrund: Augen der Ameisen schonen (IR-Licht
+ *     ist für Menschen kaum sichtbar, Kiosk-Display aber schon)
+ *   - Touch-Targets min. 48px (WAI-ARIA Empfehlung für Touch-Screens)
+ *   - Keine externen Fonts / Ressourcen → offline-fähig
+ *   - Cursor ausgeblendet für Kiosk-Betrieb
+ */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --bg:          #0a0a0a;
+    --surface:     #161616;
+    --surface2:    #1f1f1f;
+    --border:      #2a2a2a;
+    --accent:      #ff6b00;   /* Ameisen-Orange */
+    --accent-dim:  #7a3300;
+    --text:        #e0e0e0;
+    --text-muted:  #666;
+    --ir-glow:     rgba(255, 107, 0, 0.15);
+    --bar-height:  88px;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Courier New', Courier, monospace;
+    overflow: hidden;
+    cursor: none; /* Kiosk: Cursor verstecken */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ============================================================
+   Layout: Stream-Bereich + Control-Bar
+   ============================================================ */
+
+#app {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100vh;
+}
+
+/* Stream-Bereich füllt den verfügbaren Raum */
+#stream-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+}
+
+#cam-stream {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    display: block;
+    /* Sanftes Fade-in beim Reconnect */
+    transition: opacity 0.3s ease;
+}
+
+#cam-stream.loading {
+    opacity: 0.3;
+}
+
+/* Overlay-Status (Disconnected / Reconnecting) */
+#stream-overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    color: var(--text-muted);
+    font-size: 13px;
+    letter-spacing: 0.05em;
+}
+
+#stream-overlay.visible {
+    display: flex;
+}
+
+#stream-overlay .status-icon {
+    font-size: 32px;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50%       { opacity: 1.0; }
+}
+
+/* Hostname-Badge oben links */
+#cam-badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    pointer-events: none;
+}
+
+/* ============================================================
+   Control-Bar (untere Leiste)
+   ============================================================ */
+
+#control-bar {
+    height: var(--bar-height);
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 16px;
+    flex-shrink: 0;
+}
+
+/* IR-Label + Wertanzeige */
+#ir-label-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 52px;
+}
+
+#ir-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+#ir-value {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--accent);
+    line-height: 1.1;
+    min-width: 3ch;
+    text-align: center;
+    transition: color 0.2s;
+}
+
+#ir-value.off {
+    color: var(--text-muted);
+}
+
+/* Slider */
+#ir-slider-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+#ir-slider {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--surface2);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+#ir-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px var(--accent-dim);
+    transition: background 0.15s, box-shadow 0.15s;
+}
+
+#ir-slider::-webkit-slider-thumb:active {
+    box-shadow: 0 0 16px var(--accent);
+}
+
+/* Slider Track-Fill via CSS Custom Property (gesetzt per JS) */
+#ir-slider {
+    background: linear-gradient(
+        to right,
+        var(--accent) 0%,
+        var(--accent) var(--slider-pct, 0%),
+        var(--surface2) var(--slider-pct, 0%),
+        var(--surface2) 100%
+    );
+}
+
+/* Preset-Buttons */
+#preset-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.preset-btn {
+    min-width: 48px;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.preset-btn:active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+}
+
+.preset-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.preset-btn .btn-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.preset-btn .btn-label {
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.preset-btn.active .btn-label {
+    color: var(--accent);
+}
+
+/* ============================================================
+   IR-Glow-Effekt am Stream wenn IR an
+   ============================================================ */
+#stream-container.ir-active {
+    box-shadow: inset 0 0 40px var(--ir-glow);
+}
