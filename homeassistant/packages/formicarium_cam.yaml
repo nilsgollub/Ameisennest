@@ -39,16 +39,16 @@ mqtt:
   light:
     - name: "Formicarium IR LED"
       unique_id: formicarium_ir_led
-      # On/Off via IR-Level 0 oder 255
       command_topic:        "formicarium/cam1/cmd/ir_led"
+      # State: ON wenn ir_level > 0, OFF wenn 0
       state_topic:          "formicarium/cam1/ir_level"
-      payload_on:           "255"
-      payload_off:          "0"
-      # Helligkeitssteuerung 0-255 (gleiche Topics wie On/Off)
+      state_value_template: "{% if value | int > 0 %}ON{% else %}OFF{% endif %}"
+      payload_on:           "ON"
+      payload_off:          "OFF"
+      # Helligkeitssteuerung 0-255
       brightness_command_topic:  "formicarium/cam1/cmd/ir_led"
       brightness_state_topic:    "formicarium/cam1/ir_level"
       brightness_scale: 255
-      # State ON wenn ir_level > 0
       on_command_type: brightness
       optimistic: false
       retain: true
