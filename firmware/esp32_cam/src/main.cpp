@@ -71,9 +71,8 @@ static const IPAddress DNS_SERVER  (192, 168, 1,   1);
 // Heartbeat-Intervall
 #define HEARTBEAT_MS    30000UL
 
-// MJPEG-Frame-Intervall (200 ms → ~5 fps)
-// Ameisen bewegen sich langsam — 5 fps reichen; halbiert die Netzlast.
-#define FRAME_INTERVAL_MS   200
+// MJPEG-Frame-Intervall (150 ms → ~6-7 fps)
+#define FRAME_INTERVAL_MS   150
 
 // ============================================================
 // IR-LED LEDC-Konfiguration
@@ -341,20 +340,18 @@ static bool camera_init() {
     config.pixel_format = PIXFORMAT_JPEG; // MJPEG-Ausgabe
     config.grab_mode    = CAMERA_GRAB_LATEST; // immer aktuellsten Frame
 
-    // VGA für stabiles Streaming über WiFi — SVGA war zu bandbreitenintensiv.
-    // PSRAM trotzdem nutzen für Doppelpuffer (smoother grab).
     if (psramFound()) {
-        config.frame_size    = FRAMESIZE_VGA;  // 640×480 — ~12 KB/Frame statt 26 KB
-        config.jpeg_quality  = 15;             // Etwas mehr Komprimierung als zuvor
-        config.fb_count      = 2;              // Doppelpuffer — GRAB_LATEST verhindert Stau
+        config.frame_size    = FRAMESIZE_SVGA; // 800×600 — mehr Detail für Nahaufnahme
+        config.jpeg_quality  = 8;              // Hohe Qualität (0=best, 63=worst)
+        config.fb_count      = 2;
         config.fb_location   = CAMERA_FB_IN_PSRAM;
-        Serial.println("[CAM] PSRAM gefunden → VGA 640×480, 2× Framebuffer");
+        Serial.println("[CAM] PSRAM gefunden → SVGA 800×600, Q8, 2× Framebuffer");
     } else {
         config.frame_size    = FRAMESIZE_VGA;
-        config.jpeg_quality  = 20;
+        config.jpeg_quality  = 12;
         config.fb_count      = 1;
         config.fb_location   = CAMERA_FB_IN_DRAM;
-        Serial.println("[CAM] Kein PSRAM → VGA 640×480, 1× Framebuffer");
+        Serial.println("[CAM] Kein PSRAM → VGA 640×480, Q12");
     }
 
     esp_err_t err = esp_camera_init(&config);
@@ -363,17 +360,20 @@ static bool camera_init() {
         return false;
     }
 
-    // Sensorparameter für Formicarium-Bedingungen optimieren
-    // (schwaches Restlicht + IR-Beleuchtung)
+    // Sensorparameter für IR-Nahaufnahme im Dunkeln
     sensor_t *s = esp_camera_sensor_get();
     if (s) {
-        s->set_brightness(s, 1);       // leicht heller
-        s->set_saturation(s, -1);      // entsättigter (IR-Licht ist ohnehin grau)
-        s->set_gainceiling(s, GAINCEILING_4X); // Verstärkung für Schwachlicht
-        s->set_whitebal(s, 1);         // Auto-Weißabgleich an
-        s->set_awb_gain(s, 1);
-        s->set_exposure_ctrl(s, 1);    // Auto-Belichtung an
-        s->set_aec2(s, 1);             // AEC DSP-Algorithmus
+        s->set_brightness(s, 2);             // Maximum Helligkeit
+        s->set_contrast(s, 2);               // Maximum Kontrast — schärfere Kanten
+        s->set_saturation(s, -2);            // Kein Farbstich (IR = monochrom)
+        s->set_gainceiling(s, GAINCEILING_128X); // Maximale Verstärkung für Schwachlicht
+        s->set_exposure_ctrl(s, 1);          // Auto-Belichtung an
+        s->set_aec2(s, 1);                   // AEC DSP für bessere Dunkelbelichtung
+        s->set_ae_level(s, 2);               // AE-Target hell einstellen
+        s->set_gain_ctrl(s, 1);              // AGC an
+        s->set_whitebal(s, 0);               // Weißabgleich aus (kein Sinn bei IR)
+        s->set_awb_gain(s, 0);
+        s->set_colorbar(s, 0);
     }
 
     Serial.println("[CAM] OV3660 initialisiert");
