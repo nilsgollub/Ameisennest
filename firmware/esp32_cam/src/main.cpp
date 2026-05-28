@@ -82,10 +82,15 @@ static const IPAddress DNS_SERVER  (192, 168, 1,   1);
 #define LEDC_FREQ_HZ     5000
 #define LEDC_RESOLUTION     8   // 8 Bit → Wertebereich 0-255
 
+// IR-Auto-Off: 60s nach letztem Einschalten → IR aus (Firmware-Watchdog,
+// unabhängig von HA/MQTT als Fallback-Sicherheit).
+#define IR_AUTO_OFF_MS  60000UL
+
 // ============================================================
 // Globale Zustände
 // ============================================================
 static uint8_t  g_ir_level    = 0;      // aktuelles IR-PWM-Level
+static uint32_t g_ir_on_since = 0;      // millis() beim letzten IR-Einschalten (0 = aus)
 static float    g_lux         = -1.0f;  // letzter Lux-Wert (-1 = nicht gelesen)
 static bool     g_als_ok      = false;  // LTR-308 erfolgreich initialisiert
 static uint32_t g_last_hb     = 0;      // Timestamp letzter Heartbeat
@@ -106,11 +111,14 @@ static void ir_set(uint8_t level) {
     g_ir_level = level;
     ledcWrite(LEDC_CHANNEL_IR, level);
 
+    // Timestamp für Auto-Off-Watchdog
+    g_ir_on_since = (level > 0) ? millis() : 0;
+
     char buf[4];
     snprintf(buf, sizeof(buf), "%u", level);
     mqtt.publish(TOPIC_IR_LEVEL, buf, /*retain=*/true);
 
-    Serial.printf("[IR] level=%u\n", level);
+    Serial.printf("[IR] level=%u%s\n", level, level > 0 ? " (Auto-Off in 60s)" : "");
 }
 
 // ============================================================
@@ -536,6 +544,12 @@ void loop() {
         g_last_hb = now;
         als_read_publish();
         mqtt_publish_heartbeat();
+    }
+
+    // IR Auto-Off Watchdog (Firmware-Fallback, unabhängig von HA/MQTT)
+    if (g_ir_on_since > 0 && (now - g_ir_on_since) >= IR_AUTO_OFF_MS) {
+        Serial.println("[IR] Auto-Off (60s Timer)");
+        ir_set(0);
     }
 
     // WiFi-Watchdog: bei Verbindungsverlust neu verbinden

@@ -93,8 +93,24 @@ mqtt:
 # --- Automationen -------------------------------------------
 automation:
 
-  # IR-LED automatisch ausschalten wenn HA-Nacht-Profil aktiv
-  # (verhindert versehentlich dauerhaft aktive IR-Strahlung)
+  # IR-LED nach 1 Minute automatisch ausschalten (primärer Timer)
+  # Verhindert dauerhaft aktive 940nm-Strahlung im Nest.
+  - alias: "Formicarium IR LED Auto-Off 1min"
+    id: formicarium_ir_auto_off
+    description: "IR-LEDs 60s nach dem Einschalten automatisch abschalten"
+    trigger:
+      - platform: state
+        entity_id: light.formicarium_ir_led
+        to: "on"
+        for:
+          seconds: 60
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.formicarium_ir_led
+    mode: restart   # Timer neu starten wenn IR erneut eingeschaltet wird
+
+  # IR-LED Mitternacht-Sicherheits-Aus (Fallback)
   - alias: "Formicarium IR LED Nacht-Aus"
     id: formicarium_ir_off_night
     description: "IR-LEDs um Mitternacht ausschalten falls vergessen"
