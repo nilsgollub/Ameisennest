@@ -1,118 +1,196 @@
 # FORMICA-OS · Kameranode Installationsanleitung
 
-Ziel: DFRobot DFR1154 (ESP32-S3 AI CAM) als MJPEG-Livestream im
-Heimnetz, steuerbar über den Kiosk-Browser auf dem Raspberry Pi 4
-und über Home Assistant.
+Verifiziert mit: DFRobot DFR1154, Windows 11 PC, Raspberry Pi 4 Debian 13 Trixie.
 
 ---
 
-## Voraussetzungen
+## Netzwerk-Topologie
 
-| Was | Mindestanforderung |
-|-----|--------------------|
-| Hardware | DFRobot DFR1154 (ESP32-S3 + OV3660) |
-| | Raspberry Pi 4 mit Raspberry Pi OS Bookworm 64-bit |
-| | Desktop-Umgebung (LXDE oder Wayfire) |
-| | Touchscreen oder HDMI-Display am RPi |
-| Netzwerk | WLAN-Router, ESP32 und RPi im selben Subnetz |
-| Software (PC) | [PlatformIO](https://platformio.org) (VS Code Extension oder CLI) |
-| | Home Assistant mit Mosquitto MQTT Add-on |
-
----
-
-## Schritt 1 — ESP32 konfigurieren
-
-Öffne `firmware/esp32_cam/src/main.cpp` und passe den Abschnitt
-**Nutzer-Konfiguration** (Zeilen ~29–38) an:
-
-```cpp
-#define WIFI_SSID    "MeinNetz"          // WLAN-Name
-#define WIFI_PASS    "MeinPasswort"      // WLAN-Passwort
-
-static const IPAddress STATIC_IP   (192, 168, 1, 200); // freie IP im Netz
-static const IPAddress GATEWAY     (192, 168, 1,   1); // Router-IP
-static const IPAddress SUBNET      (255, 255, 255,  0);
-static const IPAddress DNS_SERVER  (192, 168, 1,   1);
-
-#define MQTT_BROKER  "192.168.1.100"    // IP des Raspberry Pi (HA)
+```
+PC (Windows 11)              192.168.1.x
+ESP32 Kamera (DFR1154)       192.168.1.201  (statisch)
+RPi Kiosk (7" Touchscreen)   192.168.1.147
+RPi Home Assistant           192.168.1.155  (Mosquitto MQTT)
 ```
 
-> Die statische IP verhindert, dass sich der Kiosk-Browser neu
-> konfigurieren muss wenn der DHCP-Lease erneuert wird.
+Zwei separate Raspberry Pis — Kiosk und HA laufen getrennt.
 
 ---
 
-## Schritt 2 — ESP32 flashen
+## Schritt 1 — Secrets konfigurieren
+
+Alle Zugangsdaten stehen in `firmware/esp32_cam/credentials.ini` (nicht in git).
+Vorlage kopieren und befüllen:
 
 ```bash
-# Im Repo-Root:
-cd firmware/esp32_cam
-
-# Kompilieren + flashen (USB-C Kabel am DFR1154)
-pio run -t upload
-
-# Seriellen Monitor öffnen (optional, zur Diagnose)
-pio run -t monitor
+cp firmware/esp32_cam/credentials.ini.example firmware/esp32_cam/credentials.ini
 ```
 
-**Erwartete Ausgabe im Monitor:**
+Dann in `credentials.ini` eintragen:
+
+```ini
+[env:dfr1154_cam]
+build_flags =
+    ${base.build_flags}
+    -DWIFI_SSID=\"DeineSSID\"
+    -DWIFI_PASS=\"DeinWLANPasswort\"
+    -DMQTT_BROKER=\"192.168.1.155\"    ; IP des HA-RPi
+    -DMQTT_USER=\"DeinHAUser\"
+    -DMQTT_PASS=\"DeinHAPasswort\"
+```
+
+> MQTT-User ist ein normaler HA-Nutzer (Einstellungen → Personen → Nutzer).
+> Kein anonymer Zugang nötig.
+
+Statische IP des ESP32 steht in `src/main.cpp` Zeile ~47 — dort ggf. anpassen:
+
+```cpp
+static const IPAddress STATIC_IP (192, 168, 1, 201);
+```
+
+---
+
+## Schritt 2 — ESP32 flashen (Windows, PlatformIO VS Code)
+
+```bash
+cd firmware/esp32_cam
+pio run -t upload
+```
+
+**Bekannte Stolpersteine unter Windows:**
+
+**`No module named 'fatfs.wrapper'`** — tritt auf wenn Python 3.13 als System-Python
+verwendet wird. Fix: espressif32 auf 6.5.0 gepinnt (bereits in `platformio.ini`).
+Falls der Fehler trotzdem auftritt:
+```bash
+C:\Users\<user>\.platformio\penv\Scripts\pip.exe install fatfs
+```
+
+**COM-Port** — PlatformIO erkennt ihn automatisch aus `platformio.ini`:
+```ini
+upload_port = COM7
+monitor_port = COM7
+```
+Aktueller Port via Windows Geräte-Manager → Anschlüsse (COM & LPT).
+
+**Erwartete Serial-Ausgabe** (`pio run -t monitor`):
 
 ```
 === FORMICA-OS Kameranode ===
 [IR] LED auf GPIO 47 initialisiert
-[WIFI] Verbinde mit 'MeinNetz'......
-[WIFI] Verbunden! IP: 192.168.1.200
+[WIFI] Verbinde mit 'Skynet'.
+[WIFI] Verbunden! IP: 192.168.1.201
 [mDNS] Erreichbar als http://formicarium-cam1.local
 [CAM] PSRAM gefunden → SVGA 800×600, 2× Framebuffer
 [CAM] OV3660 initialisiert
 [MQTT] Verbinde mit Broker... OK
-[HTTP] Server gestartet auf Port 80
-[FORMICA] Kameranode bereit
+[MQTT] Heartbeat: {"online":true,"ip":"192.168.1.201",...}
 ```
 
-**Schnelltest im Browser** (PC im gleichen Netz):
-- `http://formicarium-cam1.local/` → JSON Status
-- `http://formicarium-cam1.local/capture` → JPEG-Snapshot
-- `http://formicarium-cam1.local/stream` → MJPEG-Livestream
-- `http://formicarium-cam1.local/ir?level=128` → IR auf 50%
+**Schnelltest im Browser:**
+
+```
+http://192.168.1.201/stream    → MJPEG-Livestream
+http://192.168.1.201/capture   → JPEG-Snapshot
+http://192.168.1.201/ir?level=128  → IR auf 50%
+http://192.168.1.201/          → JSON Status
+```
 
 ---
 
-## Schritt 3 — Raspberry Pi Kiosk einrichten
+## Schritt 3 — Kiosk-RPi einrichten
 
-Das Setup-Script installiert nginx, richtet Chromium im Kiosk-Modus
-ein und deaktiviert den Bildschirmschoner.
+Getestet auf **Debian 13 Trixie (aarch64)**, Benutzer `nilsgollub`.
 
-```bash
-# Auf dem Raspberry Pi als root ausführen:
-sudo bash /pfad/zum/repo/scripts/setup_kiosk_rpi.sh
-
-# Oder wenn das Repo unter /home/pi/Ameisennest liegt:
-sudo bash /home/pi/Ameisennest/scripts/setup_kiosk_rpi.sh
-```
-
-Das Script ist idempotent — mehrfaches Ausführen schadet nicht.
-
-**Manuell testen vor dem Neustart:**
+### 3.1 Pakete installieren
 
 ```bash
-# mDNS prüfen (muss den ESP32 auflösen)
-ping formicarium-cam1.local
-
-# nginx testen
-curl http://localhost/
-
-# Kiosk manuell starten
-DISPLAY=:0 chromium-browser --kiosk http://localhost
+sudo apt-get update
+sudo apt-get install -y nginx chromium unclutter x11-xserver-utils
 ```
 
-**Dann neu starten:**
+> Debian 13: Paket heisst `chromium` (nicht `chromium-browser`).
+
+### 3.2 Kiosk-Dateien kopieren
+
+```bash
+mkdir -p ~/kiosk
+cp kiosk/index.html kiosk/app.js kiosk/style.css ~/kiosk/
+
+# Berechtigungen setzen (nginx läuft als www-data und braucht Lesezugriff)
+chmod 755 ~ ~/kiosk
+chmod 644 ~/kiosk/*
+```
+
+### 3.3 nginx konfigurieren
+
+```bash
+sudo tee /etc/nginx/sites-available/formica-kiosk << 'EOF'
+server {
+    listen 80 default_server;
+    server_name localhost;
+    root /home/nilsgollub/kiosk;
+    index index.html;
+    access_log off;
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control no-store;
+    }
+}
+EOF
+
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo ln -s /etc/nginx/sites-available/formica-kiosk /etc/nginx/sites-enabled/formica-kiosk
+sudo nginx -t && sudo systemctl reload nginx
+
+# Test:
+curl -o /dev/null -w '%{http_code}' http://localhost/
+# → 200
+```
+
+### 3.4 Autostart einrichten
+
+```bash
+mkdir -p ~/.config/autostart
+
+# Chromium Kiosk
+cat > ~/.config/autostart/formica-kiosk.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Formica Kiosk
+Exec=chromium --kiosk --app=http://localhost --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0
+Hidden=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+# Bildschirmschoner deaktivieren
+cat > ~/.config/autostart/formica-screensaver-off.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Formica Screensaver Off
+Exec=bash -c "xset s off && xset -dpms && xset s noblank"
+Hidden=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+# Mauszeiger verstecken
+cat > ~/.config/autostart/formica-unclutter.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Unclutter
+Exec=unclutter -idle 1 -root
+Hidden=false
+X-GNOME-Autostart-enabled=true
+EOF
+```
+
+### 3.5 Neu starten
 
 ```bash
 sudo reboot
 ```
 
-Nach dem Neustart startet Chromium automatisch im Vollbild.
+Nach dem Neustart startet Chromium automatisch im Vollbild mit dem Kamerastream.
 
 ---
 
@@ -120,114 +198,104 @@ Nach dem Neustart startet Chromium automatisch im Vollbild.
 
 ### 4.1 Packages-Verzeichnis aktivieren
 
-Falls noch nicht vorhanden, in `configuration.yaml` auf dem RPi:
+In `configuration.yaml` auf dem HA-RPi (192.168.1.155):
 
 ```yaml
 homeassistant:
   packages: !include_dir_named packages
 ```
 
-Dann die Kamera-Package-Datei an die richtige Stelle kopieren:
+### 4.2 Package-Datei kopieren
 
 ```bash
-# Auf dem RPi (SSH oder Dateibrowser):
-cp /home/pi/Ameisennest/homeassistant/packages/formicarium_cam.yaml \
-   /config/packages/formicarium_cam.yaml
+cp homeassistant/packages/formicarium_cam.yaml /config/packages/
 ```
 
-### 4.2 Konfiguration prüfen und neu laden
+### 4.3 HA neu laden
 
 ```bash
-# Über SSH auf dem RPi (HA OS):
 ha core check
 ha core restart
 ```
 
-### 4.3 Entities prüfen
+### 4.4 Erwartete Entities
 
-Nach dem Neustart sollten diese Entities vorhanden sein:
-
-| Entity | Erwarteter Zustand |
-|--------|--------------------|
+| Entity | Zustand |
+|--------|---------|
 | `camera.formicarium_cam1` | Vorschaubild sichtbar |
 | `light.formicarium_ir_led` | `off`, Helligkeit 0–255 |
 | `binary_sensor.formicarium_cam1` | `on` (online) |
-| `sensor.formicarium_cam1_ip` | `192.168.1.200` |
-
----
-
-## Schritt 5 — Kiosk-Konfiguration anpassen
-
-Der Hostname des ESP32 ist in `kiosk/app.js` Zeile 15 konfiguriert:
-
-```js
-const CAM_HOST = 'formicarium-cam1.local';
-```
-
-Falls mDNS im Netz nicht funktioniert, einfach die statische IP
-eintragen:
-
-```js
-const CAM_HOST = '192.168.1.200';
-```
-
-Nach einer Änderung die Kiosk-Dateien neu auf den RPi kopieren:
-
-```bash
-sudo bash scripts/setup_kiosk_rpi.sh   # kopiert kiosk/ nach /home/pi/kiosk/
-```
+| `sensor.formicarium_cam1_ip` | `192.168.1.201` |
 
 ---
 
 ## Fehlerbehebung
 
-### ESP32 bootet nicht / kein Serial-Output
-- USB-C-Kabel prüfen (manche Kabel sind nur Ladekabel, kein Data)
-- `ARDUINO_USB_CDC_ON_BOOT=1` ist in platformio.ini gesetzt →
-  kein separater USB-Serial-Adapter nötig
-- Falls Flash fehlschlägt: BOOT-Button gedrückt halten während USB
-  angesteckt wird, dann `pio run -t upload`
+### PSRAM nicht erkannt (`[CAM] Kein PSRAM → VGA Fallback`)
+`board_build.arduino.memory_type = qio_opi` muss in `platformio.ini` stehen.
+`psram_type = opi` allein reicht bei espressif32@6.5.0 nicht aus.
 
-### Kamera zeigt kein Bild (`[CAM] Initialisierung fehlgeschlagen`)
-- PSRAM-Fehler: `board_build.psram_type = opi` in platformio.ini
-  prüfen — ohne OPI friert der Sensor-Init ein
-- Kamera-Kabel am DFR1154 sitzt lose → leicht andrücken
+### MQTT `rc=5` (Unauthorized)
+Broker erreichbar, aber Zugangsdaten falsch. `MQTT_USER` / `MQTT_PASS` in
+`credentials.ini` prüfen. HA-Nutzer muss unter Einstellungen → Personen → Nutzer
+angelegt sein mit aktiviertem „Lokaler Benutzer".
 
-### Stream friert ein / Kiosk zeigt Reconnect-Overlay
-- Nur ein Client kann den MJPEG-Stream gleichzeitig öffnen
-  (httpd `max_open_sockets = 5`, aber Stream blockiert einen Task)
-- HA-Kamera-Entity nicht gleichzeitig mit Kiosk öffnen beim Testen
-- WLAN-Signal prüfen: ESP32 braucht stabiles RSSI > -70 dBm
+### MQTT `rc=-2` (Connection Failed)
+Broker nicht erreichbar. IP in `credentials.ini` → `MQTT_BROKER` prüfen.
+HA-RPi pingbar? Mosquitto Add-on läuft?
+
+### nginx 500 auf dem Kiosk-RPi
+Home-Verzeichnis oder kiosk-Ordner für www-data nicht lesbar.
+```bash
+chmod 755 ~ ~/kiosk
+chmod 644 ~/kiosk/*
+```
+
+### Stream öffnet sich nicht im Kiosk
+Nur ein Client kann den Stream gleichzeitig konsumieren. HA-Kamera-Entity
+nicht parallel offen halten beim ersten Test.
 
 ### mDNS `formicarium-cam1.local` nicht auflösbar
-- `avahi-daemon` auf dem RPi prüfen: `systemctl status avahi-daemon`
-- Temporär: statische IP in `kiosk/app.js` und HA-Package eintragen
+Avahi auf dem Kiosk-RPi prüfen: `systemctl status avahi-daemon`.
+Alternativ statische IP direkt in `kiosk/app.js` eintragen:
+```js
+const CAM_HOST = '192.168.1.201';
+```
 
-### IR-LED reagiert nicht auf Slider
-- Browser-Konsole öffnen (F12): CORS-Fehler oder Netzwerkfehler?
-- Direkttest: `curl "http://formicarium-cam1.local/ir?level=255"`
-- IR-LEDs sind 940 nm — mit normaler Handykamera (die IR oft
-  durchlässt) prüfen, ob die LEDs leuchten
+### IR-LEDs leuchten nicht
+940 nm ist für das menschliche Auge nicht sichtbar. Handykamera-Test:
+Die meisten Smartphone-Frontkameras zeigen IR als weißes/violettes Leuchten.
+Direkttest: `curl "http://192.168.1.201/ir?level=255"`
 
 ---
 
-## Referenz — MQTT Topics
+## Kiosk-Dateien aktualisieren
+
+Nach Änderungen an `kiosk/` auf den Kiosk-RPi übertragen (vom PC):
+
+```powershell
+# Windows mit PuTTY pscp:
+pscp -pw "PASSWORT" -hostkey "SHA256:g7qB9MYP2m4F98S1mqWkWkzucFd1A6HtSPjp2Gtaxvk" `
+  kiosk\index.html kiosk\app.js kiosk\style.css `
+  nilsgollub@192.168.1.147:/home/nilsgollub/kiosk/
+```
+
+---
+
+## MQTT Referenz
 
 ```
 formicarium/cam1/status           Heartbeat JSON alle 30 s (retain)
 formicarium/cam1/ir_level         Aktueller IR-Stand 0-255 (retain)
-formicarium/cam1/cmd/ir_led       IR-Befehl senden: "0"–"255"
+formicarium/cam1/cmd/ir_led       IR-Befehl: "0"–"255"
 ```
 
-Testen mit mosquitto_pub (auf dem RPi):
+Test vom HA-RPi:
 
 ```bash
-# IR auf 50%
-mosquitto_pub -h localhost -t formicarium/cam1/cmd/ir_led -m "128"
+mosquitto_pub -h localhost -u Nils -P PASSWORT \
+  -t formicarium/cam1/cmd/ir_led -m "128"
 
-# IR aus
-mosquitto_pub -h localhost -t formicarium/cam1/cmd/ir_led -m "0"
-
-# Heartbeat lesen
-mosquitto_sub -h localhost -t "formicarium/cam1/#" -v
+mosquitto_sub -h localhost -u Nils -P PASSWORT \
+  -t "formicarium/cam1/#" -v
 ```
