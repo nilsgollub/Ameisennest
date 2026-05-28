@@ -67,9 +67,15 @@ html, body {
     width: calc(var(--zoom, 1) * 100%);
     height: calc(var(--zoom, 1) * 100%);
     object-fit: cover;
-    object-position: center center;
+    object-position: var(--pan-x, 50%) var(--pan-y, 50%);
     display: block;
     transition: opacity 0.3s ease;
+    /* Cursor zeigt Draggability an */
+    cursor: grab;
+}
+
+#cam-stream:active {
+    cursor: grabbing;
 }
 
 #cam-stream.loading {

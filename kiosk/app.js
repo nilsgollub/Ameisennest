@@ -123,16 +123,91 @@ reloadBtn.addEventListener('click', () => {
 });
 
 // ============================================================
+// Pan (Bildausschnitt verschieben per Drag / Touch)
+// ============================================================
+// panX/panY: 0–100 (%), entspricht CSS object-position.
+// Bei zoom=1 kein Effekt; ab zoom>1 verschiebt sich der Ausschnitt.
+// Physik: Drag nach rechts → panX sinkt (Bildinhalt kommt von links).
+
+let panX = parseFloat(localStorage.getItem('panX') ?? '50');
+let panY = parseFloat(localStorage.getItem('panY') ?? '50');
+
+function applyPan() {
+    camStream.style.setProperty('--pan-x', `${panX.toFixed(2)}%`);
+    camStream.style.setProperty('--pan-y', `${panY.toFixed(2)}%`);
+}
+
+function savePan() {
+    localStorage.setItem('panX', String(panX));
+    localStorage.setItem('panY', String(panY));
+}
+
+// Empfindlichkeit: bei aktuellem Zoom-Level wieviel % pro Pixel.
+function panSensitivity() {
+    const zoom = parseFloat(zoomSlider.value) / 10;
+    if (zoom <= 1.05) return 0;  // kein Pan bei ~1x
+    const W = streamContainer.clientWidth  || 800;
+    const H = streamContainer.clientHeight || 480;
+    return {
+        x: 100 / ((zoom - 1) * W),
+        y: 100 / ((zoom - 1) * H),
+    };
+}
+
+let dragStart = null;
+
+function onDragStart(x, y) {
+    dragStart = { x, y, panX, panY };
+}
+
+function onDragMove(x, y) {
+    if (!dragStart) return;
+    const s = panSensitivity();
+    if (!s) return;
+    const dx = x - dragStart.x;
+    const dy = y - dragStart.y;
+    panX = Math.max(0, Math.min(100, dragStart.panX - dx * s.x));
+    panY = Math.max(0, Math.min(100, dragStart.panY - dy * s.y));
+    applyPan();
+}
+
+function onDragEnd() {
+    if (dragStart) savePan();
+    dragStart = null;
+}
+
+// Maus
+camStream.addEventListener('mousedown', (e) => { e.preventDefault(); onDragStart(e.clientX, e.clientY); });
+window.addEventListener('mousemove',    (e) => onDragMove(e.clientX, e.clientY));
+window.addEventListener('mouseup',      ()  => onDragEnd());
+
+// Touch
+camStream.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    onDragStart(t.clientX, t.clientY);
+}, { passive: false });
+
+camStream.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    onDragMove(t.clientX, t.clientY);
+}, { passive: false });
+
+camStream.addEventListener('touchend', () => onDragEnd());
+
+// ============================================================
 // Zoom
 // ============================================================
 const ZOOM_DEFAULT = 2.0;
 
 function applyZoom(val) {
-    // Slider: 10–50 → Zoom: 1.0–5.0
     const zoom = val / 10;
     streamContainer.style.setProperty('--zoom', zoom);
     zoomValue.textContent = zoom.toFixed(1) + '×';
     localStorage.setItem('zoom', String(val));
+    // Bei 1× Pan zentrieren
+    if (zoom <= 1.05) { panX = 50; panY = 50; applyPan(); }
 }
 
 zoomSlider.addEventListener('input', () => applyZoom(parseInt(zoomSlider.value, 10)));
@@ -210,10 +285,11 @@ camStream.addEventListener('error', () => {
 
 /** Seite bereit: Stream starten und letzten IR-Level wiederherstellen. */
 document.addEventListener('DOMContentLoaded', () => {
-    // Zoom aus localStorage wiederherstellen (Default 2×)
+    // Zoom + Pan aus localStorage wiederherstellen
     const savedZoom = parseInt(localStorage.getItem('zoom') ?? '20', 10);
     zoomSlider.value = savedZoom;
     applyZoom(savedZoom);
+    applyPan();
 
     // IR-Level aus localStorage wiederherstellen
     updateIrUi(currentIrLevel);
