@@ -1,0 +1,14 @@
+# Secrets — niemals committen
+credentials.ini
+
+# PlatformIO Build-Artefakte
+firmware/**/.pio/
+
+# Python
+__pycache__/
+*.pyc
+.mypy_cache/
+
+# CAD
+*.f3d
+*.f3z

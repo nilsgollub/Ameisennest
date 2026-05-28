@@ -29,19 +29,25 @@
 #include "camera_pins.h"
 
 // ============================================================
-// Nutzer-Konfiguration — hier anpassen vor erstem Flash
+// Nutzer-Konfiguration
+// WIFI_SSID, WIFI_PASS und MQTT_BROKER kommen aus credentials.ini
+// (nicht in main.cpp — nicht in git)
 // ============================================================
-#define WIFI_SSID       "Skynet"
-#define WIFI_PASS       "YOUR_PASSWORD"   // ← Passwort hier eintragen!
+#ifndef WIFI_SSID
+  #error "WIFI_SSID fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
+#endif
+#ifndef WIFI_PASS
+  #error "WIFI_PASS fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
+#endif
+#ifndef MQTT_BROKER
+  #error "MQTT_BROKER fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
+#endif
 
 // Statische IP des Kamera-Nodes (im gleichen Subnetz wie RPi/HA)
-static const IPAddress STATIC_IP   (192, 168, 1, 200);
+static const IPAddress STATIC_IP   (192, 168, 1, 201);
 static const IPAddress GATEWAY     (192, 168, 1,   1);
 static const IPAddress SUBNET      (255, 255, 255,  0);
 static const IPAddress DNS_SERVER  (192, 168, 1,   1);
-
-// MQTT-Broker: IP des Raspberry Pi (Home Assistant + Mosquitto)
-#define MQTT_BROKER     "192.168.1.147"
 #define MQTT_PORT       1883
 #define MQTT_CLIENT_ID  "formicarium-cam1"
 
