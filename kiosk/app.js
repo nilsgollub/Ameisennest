@@ -42,6 +42,7 @@ const overlayText     = document.getElementById('overlay-text');
 const irSlider        = document.getElementById('ir-slider');
 const irValue         = document.getElementById('ir-value');
 const presetBtns      = document.querySelectorAll('.preset-btn');
+const reloadBtn       = document.getElementById('reload-btn');
 
 // ============================================================
 // IR-LED Steuerung
@@ -112,6 +113,11 @@ presetBtns.forEach((btn) => {
         updateIrUi(level);
         sendIrLevel(level);
     });
+});
+
+// Event-Listener Reload-Button
+reloadBtn.addEventListener('click', () => {
+    reconnectStream('Manueller Reload …');
 });
 
 // ============================================================
