@@ -19,9 +19,9 @@
 // ============================================================
 
 /** Hostname des ESP32-Kameranodes (mDNS oder IP). */
-const CAM_HOST = 'formicarium-cam1.local';
-const STREAM_URL = `http://${CAM_HOST}/stream`;
-const IR_URL     = (level) => `http://${CAM_HOST}/ir?level=${level}`;
+const CAM_HOST   = 'formicarium-cam1.local';
+const STREAM_URL = `http://${CAM_HOST}:81`;   // Port 81: eigener Stream-Task
+const IR_URL     = (level) => `http://${CAM_HOST}/ir?level=${level}`; // Port 80: API
 
 /** Nach diesem Timeout (ms) ohne Bild → Reconnect auslösen. */
 const STREAM_TIMEOUT_MS = 8000;

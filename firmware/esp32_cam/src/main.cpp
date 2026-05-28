@@ -2,25 +2,26 @@
 // FORMICA-OS — ESP32-S3 AI CAM · Kameranode
 //
 // Aufgaben:
-//   1. MJPEG-Videostream  → HTTP GET /stream  (Port 80)
+//   1. MJPEG-Videostream  → Port 81  (eigener FreeRTOS-Task)
 //   2. JPEG-Snapshot      → HTTP GET /capture (Port 80)
-//   3. IR-LED-Steuerung   → HTTP GET /ir?level=0-255
+//   3. IR-LED-Steuerung   → HTTP GET /ir?level=0-255  (Port 80)
 //                           MQTT sub formicarium/cam1/cmd/ir_led
 //   4. MQTT-Heartbeat     → formicarium/cam1/status  (30 s)
 //   5. IR-State-Publish   → formicarium/cam1/ir_level (bei Änderung)
 //
-// Architektur:
-//   - esp_http_server (ESP-IDF) für HTTP — läuft in eigenem
-//     FreeRTOS-Task; stream_handler blockiert den Task solange
-//     ein Client verbunden ist.
-//   - Arduino loop() pollt MQTT unabhängig davon.
-//   - LEDC-PWM für IR-LED (5 kHz, 8 Bit → 0-255).
+// Architektur (Zwei-Port-Design):
+//   Port 80 — esp_http_server: /capture, /ir, /  (API, non-blocking)
+//   Port 81 — WiFiServer + FreeRTOS-Task: MJPEG-Stream (blocking)
+//   Der Stream blockiert nur den eigenen Task, Port 80 bleibt frei.
+//   Arduino loop() pollt MQTT unabhängig davon.
 //
 // Konfiguration: Abschnitt "Nutzer-Konfiguration" unten anpassen.
 // ============================================================
 
 #include <Arduino.h>
 #include <WiFi.h>
+#include <WiFiServer.h>
+#include <WiFiClient.h>
 #include <ESPmDNS.h>
 #include <esp_camera.h>
 #include <esp_http_server.h>
@@ -107,54 +108,62 @@ static void ir_set(uint8_t level) {
 }
 
 // ============================================================
-// HTTP-Handler: MJPEG-Stream  GET /stream
+// MJPEG-Stream Server — Port 81, eigener FreeRTOS-Task
 // ============================================================
-// Der Handler läuft im httpd-Task und blockiert in der while-
-// Schleife solange der Client verbunden ist. esp_http_server
-// weist jedem Request einen eigenen Task zu (max. 4 parallel
-// konfigurierbar), daher kein Einfluss auf MQTT-Loop.
-static esp_err_t stream_handler(httpd_req_t *req) {
-    char part_buf[64];
+// Läuft komplett getrennt von Port-80-API. Der Stream-Task
+// blockiert beliebig lang ohne Port 80 (IR, capture) zu stören.
 
-    httpd_resp_set_type(req, "multipart/x-mixed-replace;boundary=frame");
-    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-    httpd_resp_set_hdr(req, "Cache-Control", "no-store");
+static WiFiServer streamServer(81);
 
-    Serial.println("[STREAM] Client verbunden");
+static void stream_task(void *param) {
+    streamServer.begin();
+    Serial.println("[STREAM] Server gestartet auf Port 81");
 
-    while (true) {
-        camera_fb_t *fb = esp_camera_fb_get();
-        if (!fb) {
-            Serial.println("[STREAM] Kein Framebuffer — überspringe Frame");
-            vTaskDelay(pdMS_TO_TICKS(FRAME_INTERVAL_MS));
+    for (;;) {
+        WiFiClient client = streamServer.accept();
+        if (!client) {
+            vTaskDelay(pdMS_TO_TICKS(50));
             continue;
         }
 
-        // MJPEG-Part-Header schreiben
-        size_t hlen = snprintf(part_buf, sizeof(part_buf),
-            "--frame\r\n"
-            "Content-Type: image/jpeg\r\n"
-            "Content-Length: %u\r\n\r\n",
-            (unsigned)fb->len);
+        Serial.println("[STREAM] Client verbunden");
 
-        esp_err_t res = httpd_resp_send_chunk(req, part_buf, (ssize_t)hlen);
-        if (res == ESP_OK)
-            res = httpd_resp_send_chunk(req, (const char *)fb->buf, (ssize_t)fb->len);
-        if (res == ESP_OK)
-            res = httpd_resp_send_chunk(req, "\r\n", 2);
+        // Minimaler HTTP-Header
+        client.print(
+            "HTTP/1.1 200 OK\r\n"
+            "Content-Type: multipart/x-mixed-replace;boundary=frame\r\n"
+            "Access-Control-Allow-Origin: *\r\n"
+            "Cache-Control: no-store\r\n"
+            "Connection: close\r\n\r\n"
+        );
 
-        esp_camera_fb_return(fb);
+        char part_buf[64];
+        while (client.connected()) {
+            camera_fb_t *fb = esp_camera_fb_get();
+            if (!fb) {
+                vTaskDelay(pdMS_TO_TICKS(FRAME_INTERVAL_MS));
+                continue;
+            }
 
-        if (res != ESP_OK) {
-            // Client hat die Verbindung getrennt — sauber beenden
-            Serial.println("[STREAM] Client getrennt");
-            break;
+            size_t hlen = snprintf(part_buf, sizeof(part_buf),
+                "--frame\r\n"
+                "Content-Type: image/jpeg\r\n"
+                "Content-Length: %u\r\n\r\n",
+                (unsigned)fb->len);
+
+            bool ok = client.write((uint8_t *)part_buf, hlen) == hlen;
+            if (ok) ok = client.write(fb->buf, fb->len) == fb->len;
+            if (ok) ok = client.print("\r\n");
+
+            esp_camera_fb_return(fb);
+
+            if (!ok) break;
+            vTaskDelay(pdMS_TO_TICKS(FRAME_INTERVAL_MS));
         }
 
-        vTaskDelay(pdMS_TO_TICKS(FRAME_INTERVAL_MS));
+        client.stop();
+        Serial.println("[STREAM] Client getrennt");
     }
-
-    return ESP_OK;
 }
 
 // ============================================================
@@ -232,18 +241,15 @@ static void http_server_start() {
         return;
     }
 
-    static const httpd_uri_t uri_stream  = { .uri="/stream",  .method=HTTP_GET, .handler=stream_handler,  .user_ctx=nullptr };
     static const httpd_uri_t uri_capture = { .uri="/capture", .method=HTTP_GET, .handler=capture_handler, .user_ctx=nullptr };
     static const httpd_uri_t uri_ir      = { .uri="/ir",      .method=HTTP_GET, .handler=ir_handler,      .user_ctx=nullptr };
     static const httpd_uri_t uri_root    = { .uri="/",        .method=HTTP_GET, .handler=status_handler,  .user_ctx=nullptr };
 
-    httpd_register_uri_handler(server, &uri_stream);
     httpd_register_uri_handler(server, &uri_capture);
     httpd_register_uri_handler(server, &uri_ir);
     httpd_register_uri_handler(server, &uri_root);
 
-    Serial.println("[HTTP] Server gestartet auf Port 80");
-    Serial.printf("[HTTP]   http://%s.local/stream\n", MDNS_HOSTNAME);
+    Serial.println("[HTTP] API-Server gestartet auf Port 80");
     Serial.printf("[HTTP]   http://%s.local/capture\n", MDNS_HOSTNAME);
     Serial.printf("[HTTP]   http://%s.local/ir?level=128\n", MDNS_HOSTNAME);
 }
@@ -432,8 +438,13 @@ void setup() {
     mqtt.setBufferSize(256);
     mqtt_connect();
 
-    // --- HTTP-Server --------------------------------------------
+    // --- HTTP-Server Port 80 (API) ------------------------------
     http_server_start();
+
+    // --- MJPEG-Stream Port 81 (eigener Task) --------------------
+    // 8 kB Stack reicht für MJPEG-Puffer; Core 0 = Netz/WiFi-Affinität
+    xTaskCreatePinnedToCore(stream_task, "mjpeg_stream", 8192,
+                            nullptr, 1, nullptr, 0);
 
     // Status-LED kurz blinken = bereit
     for (int i = 0; i < 3; i++) {
