@@ -63,14 +63,17 @@ html, body {
 }
 
 #cam-stream {
-    /* Grösse wird per JS via --zoom gesetzt */
-    width: calc(var(--zoom, 1) * 100%);
-    height: calc(var(--zoom, 1) * 100%);
-    object-fit: cover;
-    object-position: var(--pan-x, 50%) var(--pan-y, 50%);
+    /* Natürliche Grösse — kein Crop bei 1×.
+       Zoom via CSS transform, Pan via transform-origin. */
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
     display: block;
+    object-fit: contain;
+    transform: scale(var(--zoom, 1));
+    transform-origin: var(--pan-x, 50%) var(--pan-y, 50%);
     transition: opacity 0.3s ease;
-    /* Cursor zeigt Draggability an */
     cursor: grab;
 }
 
@@ -328,6 +331,56 @@ html, body {
 
 .preset-btn.active .btn-label {
     color: var(--accent);
+}
+
+/* ============================================================
+   Pan D-Pad
+   ============================================================ */
+#pan-pad {
+    display: grid;
+    grid-template-columns: repeat(3, 36px);
+    grid-template-rows: repeat(2, 36px);
+    gap: 3px;
+    align-items: center;
+    justify-items: center;
+}
+
+/* Reihenfolge: ↑ in Mitte oben, ← ⊕ → in Mitte, ↓ in Mitte unten */
+#pan-pad .pan-btn:nth-child(1) { grid-column: 2; grid-row: 1; } /* ↑ */
+#pan-pad .pan-btn:nth-child(2) { grid-column: 1; grid-row: 2; } /* ← */
+#pan-pad .pan-btn:nth-child(3) { grid-column: 2; grid-row: 2; } /* ⊕ */
+#pan-pad .pan-btn:nth-child(4) { grid-column: 3; grid-row: 2; } /* → */
+#pan-pad .pan-btn:nth-child(5) { grid-column: 2; grid-row: 3; } /* ↓ */
+
+/* 3 Reihen brauchen 3 Zeilen */
+#pan-pad { grid-template-rows: repeat(3, 32px); }
+
+.pan-btn {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.1s, border-color 0.1s;
+    font-family: inherit;
+}
+
+.pan-btn:active, .pan-btn:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+#pan-center-btn {
+    color: #60a5fa;
+    border-color: #1e3a5f;
 }
 
 /* ============================================================
