@@ -43,6 +43,8 @@ const irSlider        = document.getElementById('ir-slider');
 const irValue         = document.getElementById('ir-value');
 const presetBtns      = document.querySelectorAll('.preset-btn');
 const reloadBtn       = document.getElementById('reload-btn');
+const zoomSlider      = document.getElementById('zoom-slider');
+const zoomValue       = document.getElementById('zoom-value');
 
 // ============================================================
 // IR-LED Steuerung
@@ -121,6 +123,21 @@ reloadBtn.addEventListener('click', () => {
 });
 
 // ============================================================
+// Zoom
+// ============================================================
+const ZOOM_DEFAULT = 2.0;
+
+function applyZoom(val) {
+    // Slider: 10–50 → Zoom: 1.0–5.0
+    const zoom = val / 10;
+    streamContainer.style.setProperty('--zoom', zoom);
+    zoomValue.textContent = zoom.toFixed(1) + '×';
+    localStorage.setItem('zoom', String(val));
+}
+
+zoomSlider.addEventListener('input', () => applyZoom(parseInt(zoomSlider.value, 10)));
+
+// ============================================================
 // MJPEG-Stream Watchdog
 // ============================================================
 let streamWatchdogTimer = null;
@@ -193,6 +210,11 @@ camStream.addEventListener('error', () => {
 
 /** Seite bereit: Stream starten und letzten IR-Level wiederherstellen. */
 document.addEventListener('DOMContentLoaded', () => {
+    // Zoom aus localStorage wiederherstellen (Default 2×)
+    const savedZoom = parseInt(localStorage.getItem('zoom') ?? '20', 10);
+    zoomSlider.value = savedZoom;
+    applyZoom(savedZoom);
+
     // IR-Level aus localStorage wiederherstellen
     updateIrUi(currentIrLevel);
     // Kein automatisches Re-Senden beim Start — der ESP32 hat

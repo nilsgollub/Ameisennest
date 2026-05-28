@@ -49,7 +49,26 @@
     <!-- ========================================================
          Control-Bar (IR-LED Steuerung)
     ========================================================= -->
-    <div id="control-bar" role="toolbar" aria-label="IR-LED Steuerung">
+    <div id="control-bar" role="toolbar" aria-label="Steuerung">
+
+        <!-- Zoom-Gruppe -->
+        <div id="zoom-group">
+            <div id="zoom-label-group" aria-hidden="true">
+                <span id="zoom-label">ZOOM</span>
+                <span id="zoom-value">2×</span>
+            </div>
+            <div id="zoom-slider-wrap">
+                <input id="zoom-slider"
+                       type="range"
+                       min="10" max="50" step="1"
+                       value="20"
+                       aria-label="Zoom"
+                       aria-valuemin="1" aria-valuemax="5">
+            </div>
+        </div>
+
+        <!-- Divider -->
+        <div class="ctrl-divider"></div>
 
         <!-- Label + Wertanzeige -->
         <div id="ir-label-group" aria-hidden="true">
