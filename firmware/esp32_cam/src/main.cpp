@@ -68,9 +68,9 @@ static const IPAddress DNS_SERVER  (192, 168, 1,   1);
 // Heartbeat-Intervall
 #define HEARTBEAT_MS    30000UL
 
-// MJPEG-Frame-Intervall (100 ms → ~10 fps)
-// Für Ameisen-Beobachtung ausreichend; spart WLAN-Bandbreite.
-#define FRAME_INTERVAL_MS   100
+// MJPEG-Frame-Intervall (200 ms → ~5 fps)
+// Ameisen bewegen sich langsam — 5 fps reichen; halbiert die Netzlast.
+#define FRAME_INTERVAL_MS   200
 
 // ============================================================
 // IR-LED LEDC-Konfiguration
@@ -142,8 +142,6 @@ static void stream_task(void *param) {
             continue;
         }
 
-        // Nagle-Algorithmus aus → sofortiges Senden kleiner Pakete
-        client.setNoDelay(true);
         Serial.println("[STREAM] Client verbunden");
 
         client.print(
@@ -175,6 +173,7 @@ static void stream_task(void *param) {
             esp_camera_fb_return(fb);
 
             if (!ok) break;
+            client.flush();  // TCP-Puffer nach jedem Frame leeren
             vTaskDelay(pdMS_TO_TICKS(FRAME_INTERVAL_MS));
         }
 
@@ -298,20 +297,20 @@ static bool camera_init() {
     config.pixel_format = PIXFORMAT_JPEG; // MJPEG-Ausgabe
     config.grab_mode    = CAMERA_GRAB_LATEST; // immer aktuellsten Frame
 
-    // PSRAM vorhanden → höhere Auflösung und Doppelpuffer möglich
+    // VGA für stabiles Streaming über WiFi — SVGA war zu bandbreitenintensiv.
+    // PSRAM trotzdem nutzen für Doppelpuffer (smoother grab).
     if (psramFound()) {
-        config.frame_size    = FRAMESIZE_SVGA; // 800×600
-        config.jpeg_quality  = 12;             // 0=best, 63=worst
-        config.fb_count      = 2;              // Doppelpuffer → smoother stream
+        config.frame_size    = FRAMESIZE_VGA;  // 640×480 — ~12 KB/Frame statt 26 KB
+        config.jpeg_quality  = 15;             // Etwas mehr Komprimierung als zuvor
+        config.fb_count      = 2;              // Doppelpuffer — GRAB_LATEST verhindert Stau
         config.fb_location   = CAMERA_FB_IN_PSRAM;
-        Serial.println("[CAM] PSRAM gefunden → SVGA 800×600, 2× Framebuffer");
+        Serial.println("[CAM] PSRAM gefunden → VGA 640×480, 2× Framebuffer");
     } else {
-        // Fallback ohne PSRAM (sollte auf DFR1154 nicht vorkommen)
-        config.frame_size    = FRAMESIZE_VGA;  // 640×480
+        config.frame_size    = FRAMESIZE_VGA;
         config.jpeg_quality  = 20;
         config.fb_count      = 1;
         config.fb_location   = CAMERA_FB_IN_DRAM;
-        Serial.println("[CAM] Kein PSRAM → VGA 640×480, 1× Framebuffer (Fallback)");
+        Serial.println("[CAM] Kein PSRAM → VGA 640×480, 1× Framebuffer");
     }
 
     esp_err_t err = esp_camera_init(&config);
