@@ -110,10 +110,26 @@ static void ir_set(uint8_t level) {
 // ============================================================
 // MJPEG-Stream Server — Port 81, eigener FreeRTOS-Task
 // ============================================================
-// Läuft komplett getrennt von Port-80-API. Der Stream-Task
-// blockiert beliebig lang ohne Port 80 (IR, capture) zu stören.
+// Läuft komplett getrennt von Port-80-API.
+// write_chunked() schreibt grosse JPEG-Frames in TCP-Segmenten
+// (1436 Byte), weil client.write() bei >TCP-Sendepuffer-Grösse
+// weniger Bytes schreibt als erwartet → Verbindungsabbruch.
 
 static WiFiServer streamServer(81);
+
+// Schreibt buf zuverlässig in 1436-Byte-Chunks. Gibt false zurück
+// sobald die Verbindung wegbricht.
+static bool write_chunked(WiFiClient &client, const uint8_t *buf, size_t len) {
+    const size_t CHUNK = 1436;  // TCP MSS für 802.11n
+    size_t sent = 0;
+    while (sent < len) {
+        size_t n = min(CHUNK, len - sent);
+        int written = client.write(buf + sent, n);
+        if (written <= 0) return false;
+        sent += written;
+    }
+    return true;
+}
 
 static void stream_task(void *param) {
     streamServer.begin();
@@ -126,9 +142,10 @@ static void stream_task(void *param) {
             continue;
         }
 
+        // Nagle-Algorithmus aus → sofortiges Senden kleiner Pakete
+        client.setNoDelay(true);
         Serial.println("[STREAM] Client verbunden");
 
-        // Minimaler HTTP-Header
         client.print(
             "HTTP/1.1 200 OK\r\n"
             "Content-Type: multipart/x-mixed-replace;boundary=frame\r\n"
@@ -151,8 +168,8 @@ static void stream_task(void *param) {
                 "Content-Length: %u\r\n\r\n",
                 (unsigned)fb->len);
 
-            bool ok = client.write((uint8_t *)part_buf, hlen) == hlen;
-            if (ok) ok = client.write(fb->buf, fb->len) == fb->len;
+            bool ok = write_chunked(client, (uint8_t *)part_buf, hlen);
+            if (ok) ok = write_chunked(client, fb->buf, fb->len);
             if (ok) ok = client.print("\r\n");
 
             esp_camera_fb_return(fb);

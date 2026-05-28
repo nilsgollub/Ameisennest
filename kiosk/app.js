@@ -24,10 +24,10 @@ const STREAM_URL = `http://${CAM_HOST}:81`;   // Port 81: eigener Stream-Task
 const IR_URL     = (level) => `http://${CAM_HOST}/ir?level=${level}`; // Port 80: API
 
 /** Nach diesem Timeout (ms) ohne Bild → Reconnect auslösen. */
-const STREAM_TIMEOUT_MS = 8000;
+const STREAM_TIMEOUT_MS = 15000;
 
 /** Wartezeit vor Reconnect-Versuch (ms). */
-const RECONNECT_DELAY_MS = 3000;
+const RECONNECT_DELAY_MS = 2000;
 
 /** IR-Debounce beim Slider (ms). */
 const IR_DEBOUNCE_MS = 180;
