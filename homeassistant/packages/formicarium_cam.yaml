@@ -53,14 +53,23 @@ mqtt:
       optimistic: false
       retain: true
 
-  # -- Heartbeat-Status-Sensor --------------------------------
+  # -- Lichtsensor LTR-308 (onboard) --------------------------
   sensor:
+    - name: "Formicarium Lux"
+      unique_id: formicarium_cam1_lux
+      state_topic: "formicarium/cam1/lux"
+      unit_of_measurement: "lx"
+      device_class: illuminance
+      icon: mdi:brightness-5
+      expire_after: 120
+
+    # -- Heartbeat-Status-Sensoren ----------------------------
     - name: "Formicarium Cam1 IP"
       unique_id: formicarium_cam1_ip
       state_topic: "formicarium/cam1/status"
       value_template: "{{ value_json.ip }}"
       icon: mdi:ip-network
-      expire_after: 120  # nach 2× Heartbeat-Intervall unavailable
+      expire_after: 120
 
     - name: "Formicarium Cam1 Uptime"
       unique_id: formicarium_cam1_uptime

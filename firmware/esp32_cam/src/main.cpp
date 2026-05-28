@@ -6,8 +6,9 @@
 //   2. JPEG-Snapshot      → HTTP GET /capture (Port 80)
 //   3. IR-LED-Steuerung   → HTTP GET /ir?level=0-255  (Port 80)
 //                           MQTT sub formicarium/cam1/cmd/ir_led
-//   4. MQTT-Heartbeat     → formicarium/cam1/status  (30 s)
+//   4. MQTT-Heartbeat     → formicarium/cam1/status  (30 s, inkl. Lux)
 //   5. IR-State-Publish   → formicarium/cam1/ir_level (bei Änderung)
+//   6. Lux-Publish        → formicarium/cam1/lux  (alle 30 s, LTR-308)
 //
 // Architektur (Zwei-Port-Design):
 //   Port 80 — esp_http_server: /capture, /ir, /  (API, non-blocking)
@@ -22,11 +23,13 @@
 #include <WiFi.h>
 #include <WiFiServer.h>
 #include <WiFiClient.h>
+#include <Wire.h>
 #include <ESPmDNS.h>
 #include <esp_camera.h>
 #include <esp_http_server.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
+#include <DFRobot_LTR308.h>
 #include "camera_pins.h"
 
 // ============================================================
@@ -82,12 +85,15 @@ static const IPAddress DNS_SERVER  (192, 168, 1,   1);
 // ============================================================
 // Globale Zustände
 // ============================================================
-static uint8_t  g_ir_level    = 0;      // aktuelles PWM-Level
+static uint8_t  g_ir_level    = 0;      // aktuelles IR-PWM-Level
+static float    g_lux         = -1.0f;  // letzter Lux-Wert (-1 = nicht gelesen)
+static bool     g_als_ok      = false;  // LTR-308 erfolgreich initialisiert
 static uint32_t g_last_hb     = 0;      // Timestamp letzter Heartbeat
 static uint32_t g_uptime_s    = 0;
 
-WiFiClient   wifiClient;
-PubSubClient mqtt(wifiClient);
+WiFiClient      wifiClient;
+PubSubClient    mqtt(wifiClient);
+DFRobot_LTR308  als;
 
 // ============================================================
 // IR-LED Hilfsfunktion
@@ -105,6 +111,36 @@ static void ir_set(uint8_t level) {
     mqtt.publish(TOPIC_IR_LEVEL, buf, /*retain=*/true);
 
     Serial.printf("[IR] level=%u\n", level);
+}
+
+// ============================================================
+// LTR-308 Ambient Light Sensor
+// ============================================================
+// Teilt I2C-Bus (GPIO 8/9) mit Camera-SCCB — Kamera MUSS zuerst
+// initialisiert werden, sonst liefert der Sensor 0 (DFRobot-Hinweis).
+
+static void als_init() {
+    // Wire auf Camera-SCCB-Pins (gemeinsamer I2C-Bus)
+    Wire.begin(CAM_PIN_SIOD, CAM_PIN_SIOC);
+    if (als.begin()) {
+        g_als_ok = true;
+        Serial.println("[ALS] LTR-308 initialisiert (I2C 0x53)");
+    } else {
+        Serial.println("[ALS] LTR-308 nicht gefunden — Lichtsensor deaktiviert");
+    }
+}
+
+// Lux lesen und per MQTT publizieren.
+// Wird im Heartbeat-Takt aufgerufen (alle 30 s).
+static void als_read_publish() {
+    if (!g_als_ok) return;
+    uint32_t raw = als.getData();
+    g_lux = (float)als.getLux(raw);
+
+    char buf[12];
+    snprintf(buf, sizeof(buf), "%.1f", g_lux);
+    mqtt.publish("formicarium/cam1/lux", buf, /*retain=*/true);
+    Serial.printf("[ALS] Lux: %.1f\n", g_lux);
 }
 
 // ============================================================
@@ -383,6 +419,7 @@ static void mqtt_publish_heartbeat() {
     doc["ip"]        = ip_str;
     doc["ir_level"]  = g_ir_level;
     doc["uptime_s"]  = g_uptime_s;
+    if (g_lux >= 0) doc["lux"] = g_lux;
 
     char buf[128];
     serializeJson(doc, buf, sizeof(buf));
@@ -454,6 +491,10 @@ void setup() {
     mqtt.setBufferSize(256);
     mqtt_connect();
 
+    // --- LTR-308 Ambient Light Sensor ---------------------------
+    // Nach camera_init() initialisieren (teilt I2C-Bus)
+    als_init();
+
     // --- HTTP-Server Port 80 (API) ------------------------------
     http_server_start();
 
@@ -490,9 +531,10 @@ void loop() {
         mqtt.loop();
     }
 
-    // Heartbeat alle HEARTBEAT_MS
+    // Heartbeat alle HEARTBEAT_MS — inkl. Lux-Messung
     if (now - g_last_hb >= HEARTBEAT_MS) {
         g_last_hb = now;
+        als_read_publish();
         mqtt_publish_heartbeat();
     }
 
