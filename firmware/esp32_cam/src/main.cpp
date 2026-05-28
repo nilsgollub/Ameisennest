@@ -30,8 +30,7 @@
 
 // ============================================================
 // Nutzer-Konfiguration
-// WIFI_SSID, WIFI_PASS und MQTT_BROKER kommen aus credentials.ini
-// (nicht in main.cpp — nicht in git)
+// Alle Secrets kommen aus credentials.ini (nicht in git)
 // ============================================================
 #ifndef WIFI_SSID
   #error "WIFI_SSID fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
@@ -41,6 +40,12 @@
 #endif
 #ifndef MQTT_BROKER
   #error "MQTT_BROKER fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
+#endif
+#ifndef MQTT_USER
+  #error "MQTT_USER fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
+#endif
+#ifndef MQTT_PASS
+  #error "MQTT_PASS fehlt — credentials.ini.example nach credentials.ini kopieren und befüllen"
 #endif
 
 // Statische IP des Kamera-Nodes (im gleichen Subnetz wie RPi/HA)
@@ -330,7 +335,7 @@ static void mqtt_connect() {
 
     Serial.print("[MQTT] Verbinde mit Broker...");
     if (mqtt.connect(MQTT_CLIENT_ID,
-                     nullptr, nullptr,
+                     MQTT_USER, MQTT_PASS,
                      TOPIC_STATUS, 0, true,  // Last-Will: Status-Topic, retain
                      "{\"online\":false}")) {
         Serial.println(" OK");
@@ -351,7 +356,7 @@ static void mqtt_publish_heartbeat() {
     char ip_str[16];
     STATIC_IP.toString().toCharArray(ip_str, sizeof(ip_str));
 
-    StaticJsonDocument<128> doc;
+    JsonDocument doc;
     doc["online"]    = true;
     doc["ip"]        = ip_str;
     doc["ir_level"]  = g_ir_level;
