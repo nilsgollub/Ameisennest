@@ -158,7 +158,7 @@ cat > ~/.config/autostart/formica-kiosk.desktop << 'EOF'
 [Desktop Entry]
 Type=Application
 Name=Formica Kiosk
-Exec=chromium --kiosk --app=http://localhost --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0
+Exec=chromium --kiosk --app=http://localhost --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain
 Hidden=false
 X-GNOME-Autostart-enabled=true
 EOF

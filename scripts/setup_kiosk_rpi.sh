@@ -151,6 +151,8 @@ EOF
 #   --check-for-update-interval=604800  Update-Check einmal/Woche
 #   --disable-translate  Kein Übersetzungsangebot
 #   --overscroll-history-navigation=0  Kein Wischgesten-Navigation
+#   --password-store=basic  Kein System-Keyring → verhindert Keyring-Passwort-Dialog
+#   --use-mock-keychain     Mock-Keychain als Fallback (macOS-Kompatibilität, schadet nicht)
 
 cat > "${AUTOSTART_DIR}/formica-kiosk.desktop" << EOF
 [Desktop Entry]
@@ -165,6 +167,8 @@ Exec=chromium-browser \\
     --noerrdialogs \\
     --disable-translate \\
     --overscroll-history-navigation=0 \\
+    --password-store=basic \\
+    --use-mock-keychain \\
     --check-for-update-interval=604800 \\
     --disable-features=TranslateUI \\
     --start-maximized
