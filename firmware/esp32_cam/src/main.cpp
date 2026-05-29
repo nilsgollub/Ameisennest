@@ -547,7 +547,9 @@ void loop() {
     }
 
     // IR Auto-Off Watchdog (Firmware-Fallback, unabhängig von HA/MQTT)
-    if (g_ir_on_since > 0 && (now - g_ir_on_since) >= IR_AUTO_OFF_MS) {
+    // millis() direkt statt gecachtem `now` — verhindert uint32-Overflow wenn
+    // g_ir_on_since innerhalb desselben loop()-Durchlaufs gesetzt wurde.
+    if (g_ir_on_since > 0 && (millis() - g_ir_on_since) >= IR_AUTO_OFF_MS) {
         Serial.println("[IR] Auto-Off (60s Timer)");
         ir_set(0);
     }
