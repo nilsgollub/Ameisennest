@@ -147,6 +147,43 @@ camStream.addEventListener('touchend', () => { if (dragStart) savePan(); dragSta
 reloadBtn.addEventListener('click', () => reconnectStream('Manueller Reload …'));
 
 // ============================================================
+// Reboot-Button (2 Sekunden halten → Pi neu starten)
+// ============================================================
+const rebootBtn = document.getElementById('reboot-btn');
+const HOLD_MS   = 2000;
+
+rebootBtn.style.setProperty('--hold-duration', `${HOLD_MS}ms`);
+
+let holdTimer = null;
+
+function startHold() {
+    rebootBtn.classList.add('holding');
+    holdTimer = setTimeout(async () => {
+        rebootBtn.textContent = '…';
+        try {
+            await fetch('http://localhost:8765/reboot', { signal: AbortSignal.timeout(3000) });
+        } catch (e) {
+            // Verbindung bricht ab weil Pi neu startet — das ist OK
+        }
+        showOverlay('Pi startet neu …');
+        rebootBtn.classList.remove('holding');
+        rebootBtn.textContent = '⏻';
+    }, HOLD_MS);
+}
+
+function cancelHold() {
+    clearTimeout(holdTimer);
+    rebootBtn.classList.remove('holding');
+}
+
+rebootBtn.addEventListener('mousedown',  startHold);
+rebootBtn.addEventListener('mouseup',    cancelHold);
+rebootBtn.addEventListener('mouseleave', cancelHold);
+rebootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startHold(); }, { passive: false });
+rebootBtn.addEventListener('touchend',   cancelHold);
+rebootBtn.addEventListener('touchcancel',cancelHold);
+
+// ============================================================
 // MJPEG-Stream Watchdog
 // ============================================================
 let streamWatchdogTimer = null;

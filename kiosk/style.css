@@ -193,6 +193,35 @@ html, body {
 /* Reload */
 #reload-btn { font-size: 22px; }
 
+/* Reboot-Button: rot + Hold-Progress-Animation */
+#reboot-btn {
+    font-size: 20px;
+    color: #ef4444;
+    border-color: #450a0a;
+    position: relative;
+    overflow: hidden;
+}
+
+#reboot-btn.holding {
+    border-color: #ef4444;
+    background: #1c0a0a;
+}
+
+/* Progress-Balken der von unten nach oben füllt beim Halten */
+#reboot-btn::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 0%;
+    background: rgba(239, 68, 68, 0.3);
+    transition: none;
+}
+
+#reboot-btn.holding::after {
+    height: 100%;
+    transition: height var(--hold-duration, 2s) linear;
+}
+
 /* ── Pan D-Pad ────────────────────────────────────────────── */
 
 #pan-pad {
