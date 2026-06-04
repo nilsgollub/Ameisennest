@@ -70,11 +70,23 @@ log_info "Installiere Pakete..."
 apt-get update -qq
 apt-get install -y -qq \
     nginx \
-    chromium-browser \
     unclutter \
     x11-xserver-utils   # für xset
 
-log_ok "Pakete installiert"
+# Chromium heißt je nach OS chromium-browser (RPi OS) oder chromium (Debian).
+# Das erste Paket, das sich installieren lässt, gewinnt.
+CHROMIUM_BIN=""
+for pkg in chromium-browser chromium; do
+    if apt-get install -y -qq "$pkg" 2>/dev/null; then
+        CHROMIUM_BIN="$pkg"
+        break
+    fi
+done
+if [[ -z "$CHROMIUM_BIN" ]]; then
+    log_err "Weder 'chromium-browser' noch 'chromium' installierbar — bitte manuell installieren"
+    exit 1
+fi
+log_ok "Pakete installiert (Chromium: ${CHROMIUM_BIN})"
 
 # ============================================================
 # 2. Kiosk-Dateien kopieren
@@ -177,7 +189,7 @@ cat > "${AUTOSTART_DIR}/formica-kiosk.desktop" << EOF
 Type=Application
 Name=Formica Kiosk
 Comment=FORMICA-OS Kiosk Chromium Vollbildanzeige
-Exec=chromium-browser \\
+Exec=${CHROMIUM_BIN} \\
     --kiosk \\
     --app=${KIOSK_URL} \\
     --no-sandbox \\
@@ -228,7 +240,7 @@ echo ""
 echo "  Nächste Schritte:"
 echo "  1. WLAN-Verbindung prüfen (RPi und ESP32 im gleichen Netz)"
 echo "  2. mDNS testen: ping formicarium-cam1.local"
-echo "  3. Kiosk testen: chromium-browser http://localhost"
+echo "  3. Kiosk testen: ${CHROMIUM_BIN} http://localhost"
 echo "  4. Raspberry Pi neu starten → Kiosk startet automatisch"
 echo ""
 log_info "Neustart empfohlen: sudo reboot"
