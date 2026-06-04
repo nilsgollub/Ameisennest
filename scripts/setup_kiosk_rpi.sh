@@ -30,6 +30,12 @@ AUTOSTART_DIR="/home/${KIOSK_USER}/.config/autostart"
 NGINX_SITE="/etc/nginx/sites-available/formica-kiosk"
 KIOSK_URL="http://localhost"
 
+# Home-Assistant-Host, auf dem die AntSim als /local/antsim/ liegt. Der Kiosk
+# proxied /antsim/ dorthin (siehe nginx-Block) und schneidet dabei
+# X-Frame-Options raus, damit der iframe-Screensaver same-origin lädt.
+# So muss die Sim NUR auf HA deployed werden (kein Kopieren ins Kiosk-Repo).
+HA_HOST="${HA_HOST:-192.168.1.155:8123}"
+
 # Repo-Pfad (Skript liegt in scripts/ → Parent = Repo-Root)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
@@ -109,6 +115,18 @@ server {
     location / {
         try_files \$uri \$uri/ /index.html;
         add_header Cache-Control "no-store";
+    }
+
+    # AntSim-Screensaver: Reverse-Proxy auf Home Assistant (/local/antsim/).
+    # Die Sim wird NUR auf HA deployed; hier wird sie same-origin durchgereicht,
+    # und X-Frame-Options/CSP werden entfernt, damit der iframe sie einbetten darf
+    # (HA sendet sonst X-Frame-Options: SAMEORIGIN -> weißes "refused to connect").
+    location /antsim/ {
+        proxy_pass http://${HA_HOST}/local/antsim/;
+        proxy_hide_header X-Frame-Options;
+        proxy_hide_header Content-Security-Policy;
+        proxy_set_header  Host \$host;
+        proxy_set_header  Accept-Encoding "";
     }
 }
 EOF

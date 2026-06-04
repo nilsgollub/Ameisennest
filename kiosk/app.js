@@ -12,7 +12,10 @@ const RECONNECT_DELAY_MS = 2000;
 
 // Bildschirmschoner
 // URL wird nach SCREENSAVER_TIMEOUT_MS Inaktivität als iframe geladen.
-// Echte URL via SCREENSAVER_URL ersetzen, sobald bekannt.
+// /antsim/ ist ein nginx-Reverse-Proxy auf Home Assistant (/local/antsim/),
+// der X-Frame-Options rausschneidet -> same-origin, iframe-fähig, single-deploy
+// (Sim wird nur auf HA deployed, nicht ins Kiosk-Repo kopiert). Siehe
+// scripts/setup_kiosk_rpi.sh (location /antsim/).
 const SCREENSAVER_URL         = './antsim/index.html?colonies=2';
 const SCREENSAVER_TIMEOUT_MS  = 1 * 60 * 1000;            // 1 Minute
 
