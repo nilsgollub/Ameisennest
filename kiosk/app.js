@@ -14,7 +14,7 @@ const RECONNECT_DELAY_MS = 2000;
 // URL wird nach SCREENSAVER_TIMEOUT_MS Inaktivität als iframe geladen.
 // Echte URL via SCREENSAVER_URL ersetzen, sobald bekannt.
 const SCREENSAVER_URL         = 'http://192.168.1.155:8123/local/antsim/index.html';
-const SCREENSAVER_TIMEOUT_MS  = 5 * 60 * 1000;            // 5 Minuten
+const SCREENSAVER_TIMEOUT_MS  = 1 * 60 * 1000;            // 1 Minute
 
 // Zoom: Schrittgrösse und Grenzen
 const ZOOM_STEP = 0.5;
@@ -151,6 +151,8 @@ camStream.addEventListener('touchend', () => { if (dragStart) savePan(); dragSta
 // Reload-Button
 // ============================================================
 reloadBtn.addEventListener('click', () => reconnectStream('Manueller Reload …'));
+
+document.getElementById('screensaver-btn').addEventListener('click', showScreensaver);
 
 // ============================================================
 // Reboot-Button (2 Sekunden halten → Pi neu starten)
