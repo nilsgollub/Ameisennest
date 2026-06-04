@@ -16,7 +16,7 @@ const RECONNECT_DELAY_MS = 2000;
 // der X-Frame-Options rausschneidet -> same-origin, iframe-fähig, single-deploy
 // (Sim wird nur auf HA deployed, nicht ins Kiosk-Repo kopiert). Siehe
 // scripts/setup_kiosk_rpi.sh (location /antsim/).
-const SCREENSAVER_URL         = './antsim/index.html?colonies=2';
+const SCREENSAVER_URL         = './antsim/index.html?colonies=2&quality=LOW';
 const SCREENSAVER_TIMEOUT_MS  = 1 * 60 * 1000;            // 1 Minute
 
 // Zoom: Schrittgrösse und Grenzen
