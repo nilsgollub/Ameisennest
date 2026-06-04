@@ -41,9 +41,13 @@ ESP32 Sensor:    [ ] Noch nicht verbaut
                      (firmware/esp32_formicarium/ — ausstehend)
 
 Kiosk RPi:       [x] Läuft ✅
-                     nginx → /home/nilsgollub/Ameisennest/kiosk/
-                     Chromium Kiosk + Autostart
+                     nginx → /home/nilsgollub/kiosk/ (Kopie aus Repo kiosk/)
+                     Chromium Kiosk + Autostart (labwc/Wayland)
                      Zoom/Pan/IR-Buttons + Reboot-Button
+                     Bildschirmschoner: AntSim (selbstentwickelte Ameisensim)
+                       via nginx-Reverse-Proxy /antsim/ → HA /local/antsim/
+                       (X-Frame-Options gestrippt; single-deploy, nur auf HA)
+                     Emoji-Font (fonts-noto-color-emoji) für AntSim-Buttons
                      Update via: ~/kiosk-update.sh (git pull)
 
 HA-Integration:  [x] Deployed ✅
@@ -86,6 +90,26 @@ binary_sensor.formicarium_cam1 Online/Offline
 - [ ] CNC-Ressource: Eigene Fräse oder Dienstleister?
 
 ## Letzte Session
+```
+Datum:    05.06.2026
+Umgebung: Claude Code (Lokal, VS Code)
+Output:   - AntSim als Kiosk-Bildschirmschoner integriert
+          - Weißbild-Ursache gefunden: HA sendet X-Frame-Options: SAMEORIGIN
+            → iframe-Embedding blockiert. Fix: nginx-Reverse-Proxy /antsim/
+            auf HA, X-Frame-Options/CSP gestrippt → same-origin, single-deploy
+          - setup_kiosk_rpi.sh repariert:
+            * Chromium-Paketname robust (chromium-browser ODER chromium;
+              Debian trixie hat nur 'chromium' → set -e Abbruch behoben)
+            * Autostart-.desktop: Exec einzeilig (Mehrzeilen-Backslash ist
+              ungültig → labwc/lxsession verwarf den Eintrag → Kiosk startete
+              nicht, Pi blieb auf dem Desktop)
+            * fonts-noto-color-emoji (AntSim-Buttons zeigten Tofu-Kästchen)
+          - Kiosk-UI: Control-Bar min-height (D-Pad/Zoom nicht mehr
+            abgeschnitten); Screensaver-× oben mittig + rot + größer
+          - Screensaver-URL: ?colonies=2&quality=LOW (Pi-freundlich, ~30 fps)
+```
+
+## Vorherige Session
 ```
 Datum:    29.05.2026
 Umgebung: Claude Code (Lokal, VS Code)

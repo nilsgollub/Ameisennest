@@ -15,7 +15,7 @@
     --blue:       #3b82f6;
     --text:       #e0e0e0;
     --muted:      #555;
-    --bar-h:      96px;
+    --bar-h:      120px;
 }
 
 html, body {
@@ -103,13 +103,15 @@ html, body {
 /* ── Control-Bar ──────────────────────────────────────────── */
 
 #control-bar {
-    height: var(--bar-h);
+    /* min-height + auto so the bar always grows to fit its tallest group (the pan
+       D-pad is ~126px) instead of clipping the lower buttons at a fixed height. */
+    min-height: var(--bar-h);
     background: var(--surface);
     border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 14px;
+    padding: 12px 14px;
     flex-shrink: 0;
 }
 
@@ -285,33 +287,36 @@ html, body {
     display: block;
 }
 
-/* × Schaltfläche: oben rechts, immer über dem iframe */
+/* × Schaltfläche: oben mittig, deutlich sichtbar (rot), immer über dem iframe */
 #screensaver-close {
     position: absolute;
-    top: 12px;
-    right: 12px;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 1000;
-    width: 44px;
-    height: 44px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(0,0,0,0.6);
-    color: rgba(255,255,255,0.7);
-    font-size: 22px;
+    border: 2px solid #ff5a4d;
+    background: rgba(220, 38, 38, 0.88);
+    color: #fff;
+    font-size: 30px;
+    font-weight: bold;
     line-height: 1;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-family: inherit;
-    /* Sichtbar nur wenn man in die Ecke schaut */
-    opacity: 0.4;
-    transition: opacity 0.2s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+    opacity: 0.92;
+    transition: opacity 0.2s, background 0.2s, transform 0.1s;
     -webkit-tap-highlight-color: transparent;
 }
 
 #screensaver-close:hover,
 #screensaver-close:active {
     opacity: 1;
-    background: rgba(30,30,30,0.9);
+    background: #ef4444;
+    transform: translateX(-50%) scale(1.08);
 }
