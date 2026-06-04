@@ -13,7 +13,7 @@ const RECONNECT_DELAY_MS = 2000;
 // Bildschirmschoner
 // URL wird nach SCREENSAVER_TIMEOUT_MS Inaktivität als iframe geladen.
 // Echte URL via SCREENSAVER_URL ersetzen, sobald bekannt.
-const SCREENSAVER_URL         = 'http://192.168.1.147';   // ← Placeholder
+const SCREENSAVER_URL         = 'http://192.168.1.155:8123/local/antsim/index.html';
 const SCREENSAVER_TIMEOUT_MS  = 5 * 60 * 1000;            // 5 Minuten
 
 // Zoom: Schrittgrösse und Grenzen
