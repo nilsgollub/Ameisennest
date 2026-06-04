@@ -71,7 +71,8 @@ apt-get update -qq
 apt-get install -y -qq \
     nginx \
     unclutter \
-    x11-xserver-utils   # für xset
+    x11-xserver-utils \
+    fonts-noto-color-emoji   # x11-xserver-utils für xset; Emoji-Font für die AntSim-Buttons (sonst Tofu-Kästchen)
 
 # Chromium heißt je nach OS chromium-browser (RPi OS) oder chromium (Debian).
 # Das erste Paket, das sich installieren lässt, gewinnt.
