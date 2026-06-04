@@ -84,6 +84,16 @@
 
 </div>
 
+<!-- ========================================================
+     Bildschirmschoner-Overlay
+     Aktiviert nach SCREENSAVER_TIMEOUT_MS Inaktivität.
+     × in der Ecke schließt ihn wieder.
+     ======================================================== -->
+<div id="screensaver" class="hidden" aria-hidden="true">
+    <iframe id="screensaver-frame" src="" allow="autoplay; fullscreen"></iframe>
+    <button id="screensaver-close" aria-label="Bildschirmschoner schließen">×</button>
+</div>
+
 <script src="app.js"></script>
 </body>
 </html>

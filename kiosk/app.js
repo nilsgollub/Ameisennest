@@ -10,6 +10,12 @@ const IR_URL     = (level) => `http://${CAM_HOST}/ir?level=${level}`;
 const STREAM_TIMEOUT_MS  = 15000;
 const RECONNECT_DELAY_MS = 2000;
 
+// Bildschirmschoner
+// URL wird nach SCREENSAVER_TIMEOUT_MS Inaktivität als iframe geladen.
+// Echte URL via SCREENSAVER_URL ersetzen, sobald bekannt.
+const SCREENSAVER_URL         = 'http://192.168.1.147';   // ← Placeholder
+const SCREENSAVER_TIMEOUT_MS  = 5 * 60 * 1000;            // 5 Minuten
+
 // Zoom: Schrittgrösse und Grenzen
 const ZOOM_STEP = 0.5;
 const ZOOM_MIN  = 1.0;
@@ -244,3 +250,49 @@ document.addEventListener('visibilitychange', () => {
         reconnectStream('Wiederverbinde …');
     }
 });
+
+// ============================================================
+// Bildschirmschoner
+// ============================================================
+const screensaverEl    = document.getElementById('screensaver');
+const screensaverFrame = document.getElementById('screensaver-frame');
+const screensaverClose = document.getElementById('screensaver-close');
+
+let screensaverTimer  = null;
+let screensaverActive = false;
+
+function showScreensaver() {
+    screensaverActive = true;
+    screensaverFrame.src = SCREENSAVER_URL;
+    screensaverEl.classList.remove('hidden');
+    screensaverEl.setAttribute('aria-hidden', 'false');
+}
+
+function hideScreensaver() {
+    screensaverActive = false;
+    screensaverEl.classList.add('hidden');
+    screensaverEl.setAttribute('aria-hidden', 'true');
+    // src leeren damit kein Audio/Video im Hintergrund weiterläuft
+    setTimeout(() => { screensaverFrame.src = ''; }, 300);
+    resetScreensaverTimer();
+}
+
+function resetScreensaverTimer() {
+    clearTimeout(screensaverTimer);
+    screensaverTimer = setTimeout(showScreensaver, SCREENSAVER_TIMEOUT_MS);
+}
+
+// × Schaltfläche schließt Screensaver
+screensaverClose.addEventListener('click',      hideScreensaver);
+screensaverClose.addEventListener('touchstart', (e) => { e.preventDefault(); hideScreensaver(); }, { passive: false });
+
+// Jede Benutzeraktion setzt den Idle-Timer zurück
+['mousemove', 'mousedown', 'touchstart', 'keydown', 'wheel'].forEach(evt => {
+    document.addEventListener(evt, () => {
+        if (screensaverActive) return; // laufender Screensaver soll nicht durch Bewegung abgebrochen werden
+        resetScreensaverTimer();
+    }, { passive: true });
+});
+
+// Timer starten sobald die Seite bereit ist
+resetScreensaverTimer();
