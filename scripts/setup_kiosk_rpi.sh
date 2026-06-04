@@ -189,19 +189,7 @@ cat > "${AUTOSTART_DIR}/formica-kiosk.desktop" << EOF
 Type=Application
 Name=Formica Kiosk
 Comment=FORMICA-OS Kiosk Chromium Vollbildanzeige
-Exec=${CHROMIUM_BIN} \\
-    --kiosk \\
-    --app=${KIOSK_URL} \\
-    --no-sandbox \\
-    --disable-infobars \\
-    --noerrdialogs \\
-    --disable-translate \\
-    --overscroll-history-navigation=0 \\
-    --password-store=basic \\
-    --use-mock-keychain \\
-    --check-for-update-interval=604800 \\
-    --disable-features=TranslateUI \\
-    --start-maximized
+Exec=${CHROMIUM_BIN} --kiosk --app=${KIOSK_URL} --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain --check-for-update-interval=604800 --disable-features=TranslateUI --start-maximized
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
