@@ -134,12 +134,18 @@ server {
     # Die Sim wird NUR auf HA deployed; hier wird sie same-origin durchgereicht,
     # und X-Frame-Options/CSP werden entfernt, damit der iframe sie einbetten darf
     # (HA sendet sonst X-Frame-Options: SAMEORIGIN -> weißes "refused to connect").
+    # HA cacht index.html 31 Tage (Cache-Control: max-age=2678400) -> Chromium zeigt
+    # neue Builds erst nach Wochen. Darum hier no-store erzwingen, damit jeder
+    # Screensaver-Aufruf den frischen Build holt.
     location /antsim/ {
         proxy_pass http://${HA_HOST}/local/antsim/;
         proxy_hide_header X-Frame-Options;
         proxy_hide_header Content-Security-Policy;
+        proxy_hide_header Cache-Control;
+        proxy_hide_header Expires;
         proxy_set_header  Host \$host;
         proxy_set_header  Accept-Encoding "";
+        add_header Cache-Control "no-store" always;
     }
 }
 EOF
