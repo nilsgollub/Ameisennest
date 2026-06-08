@@ -190,13 +190,15 @@ EOF
 #   --overscroll-history-navigation=0  Kein Wischgesten-Navigation
 #   --password-store=basic  Kein System-Keyring → verhindert Keyring-Passwort-Dialog
 #   --use-mock-keychain     Mock-Keychain als Fallback (macOS-Kompatibilität, schadet nicht)
+#   --disk-cache-size=1     Disk-Cache praktisch aus → laedt nach jedem Deploy frisch
+#                           (verhindert "Load fail" auf alte, geloeschte JS-Chunks)
 
 cat > "${AUTOSTART_DIR}/formica-kiosk.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Formica Kiosk
 Comment=FORMICA-OS Kiosk Chromium Vollbildanzeige
-Exec=${CHROMIUM_BIN} --kiosk --app=${KIOSK_URL} --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain --check-for-update-interval=604800 --disable-features=TranslateUI --start-maximized
+Exec=${CHROMIUM_BIN} --kiosk --app=${KIOSK_URL} --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain --check-for-update-interval=604800 --disable-features=TranslateUI --start-maximized --disk-cache-size=1
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
