@@ -30,11 +30,12 @@ AUTOSTART_DIR="/home/${KIOSK_USER}/.config/autostart"
 NGINX_SITE="/etc/nginx/sites-available/formica-kiosk"
 KIOSK_URL="http://localhost"
 
-# Home-Assistant-Host, auf dem die AntSim als /local/antsim/ liegt. Der Kiosk
-# proxied /antsim/ dorthin (siehe nginx-Block) und schneidet dabei
-# X-Frame-Options raus, damit der iframe-Screensaver same-origin lädt.
-# So muss die Sim NUR auf HA deployed werden (kein Kopieren ins Kiosk-Repo).
-HA_HOST="${HA_HOST:-192.168.1.155:8123}"
+# AntSim-Screensaver: wird LOKAL aus einem git-Klon ausgeliefert (entkoppelt von
+# Home Assistant — ein hängender HA blackt den Kiosk nicht mehr aus). Der Klon
+# enthält das committete dist/ (kein Node/Build auf dem Pi nötig) und wird beim
+# Boot per `git pull` aktualisiert (Autostart-Eintrag weiter unten).
+ANTSIM_DIR="/home/${KIOSK_USER}/AntSim_V2"
+ANTSIM_REPO="${ANTSIM_REPO:-https://github.com/nilsgollub/AntSim_V2.git}"
 
 # Repo-Pfad (Skript liegt in scripts/ → Parent = Repo-Root)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -105,6 +106,21 @@ else
 fi
 
 # ============================================================
+# 2.9 AntSim klonen (lokaler Screensaver, self-update beim Boot)
+# ============================================================
+log_info "Klone/aktualisiere AntSim (${ANTSIM_REPO})..."
+if [[ -d "${ANTSIM_DIR}/.git" ]]; then
+    sudo -u "${KIOSK_USER}" git -C "${ANTSIM_DIR}" pull --ff-only || log_err "git pull fehlgeschlagen"
+else
+    sudo -u "${KIOSK_USER}" git clone --depth 1 "${ANTSIM_REPO}" "${ANTSIM_DIR}" || log_err "git clone fehlgeschlagen"
+fi
+if [[ -f "${ANTSIM_DIR}/dist/index.html" ]]; then
+    log_ok "AntSim dist/ vorhanden (wird lokal als /antsim/ ausgeliefert)"
+else
+    log_err "AntSim dist/ fehlt — Screensaver bleibt leer (Repo enthaelt dist/?)"
+fi
+
+# ============================================================
 # 3. nginx konfigurieren
 # ============================================================
 log_info "Konfiguriere nginx..."
@@ -130,21 +146,12 @@ server {
         add_header Cache-Control "no-store";
     }
 
-    # AntSim-Screensaver: Reverse-Proxy auf Home Assistant (/local/antsim/).
-    # Die Sim wird NUR auf HA deployed; hier wird sie same-origin durchgereicht,
-    # und X-Frame-Options/CSP werden entfernt, damit der iframe sie einbetten darf
-    # (HA sendet sonst X-Frame-Options: SAMEORIGIN -> weißes "refused to connect").
-    # HA cacht index.html 31 Tage (Cache-Control: max-age=2678400) -> Chromium zeigt
-    # neue Builds erst nach Wochen. Darum hier no-store erzwingen, damit jeder
-    # Screensaver-Aufruf den frischen Build holt.
+    # AntSim-Screensaver: LOKAL aus dem git-Klon ausgeliefert (entkoppelt von Home
+    # Assistant — ein haengender HA blackt den Kiosk nicht mehr aus). Der Klon enthaelt
+    # das committete dist/; `git pull` beim Boot aktualisiert es (Autostart unten).
+    # no-store -> jeder Screensaver-Aufruf holt den frischen Build.
     location /antsim/ {
-        proxy_pass http://${HA_HOST}/local/antsim/;
-        proxy_hide_header X-Frame-Options;
-        proxy_hide_header Content-Security-Policy;
-        proxy_hide_header Cache-Control;
-        proxy_hide_header Expires;
-        proxy_set_header  Host \$host;
-        proxy_set_header  Accept-Encoding "";
+        alias ${ANTSIM_DIR}/dist/;
         add_header Cache-Control "no-store" always;
     }
 }
@@ -174,6 +181,20 @@ Exec=bash -c "xset s off && xset -dpms && xset s noblank"
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
+EOF
+
+# AntSim beim Boot aktualisieren (self-update): git pull im Klon, bevor der
+# Screensaver geladen wird. Laeuft parallel zum Kiosk-Start; das committete dist/
+# wird sofort lokal ausgeliefert (kein Build noetig).
+cat > "${AUTOSTART_DIR}/formica-antsim-update.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Formica AntSim Auto-Update
+Comment=git pull the local AntSim screensaver on boot (self-update from GitHub)
+Exec=bash -lc 'git -C ${ANTSIM_DIR} pull --ff-only >> /home/${KIOSK_USER}/antsim-update.log 2>&1'
+X-GNOME-Autostart-enabled=true
+Hidden=false
+NoDisplay=false
 EOF
 
 # ============================================================
