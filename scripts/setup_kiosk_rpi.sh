@@ -223,6 +223,10 @@ EOF
 LAUNCHER="/home/${KIOSK_USER}/formica-launch-chromium.sh"
 cat > "${LAUNCHER}" << EOF
 #!/usr/bin/env bash
+# DISPLAY/XAUTHORITY mit Fallback selbst setzen, damit der Launcher auch aus einem
+# Kontext ohne X-Session-Env (z.B. vom Watchdog oder per SSH) Chromium an :0 bringt.
+export DISPLAY="\${DISPLAY:-:0}"
+export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
 exec ${CHROMIUM_BIN} --kiosk --app=${KIOSK_URL} --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain --check-for-update-interval=604800 --disable-features=TranslateUI --start-maximized --disk-cache-size=1
 EOF
 chmod +x "${LAUNCHER}"
@@ -244,7 +248,10 @@ EOF
 WATCHDOG="/home/${KIOSK_USER}/formica-watchdog.sh"
 cat > "${WATCHDOG}" << EOF
 #!/usr/bin/env bash
-# Relaunch Chromium if it dies. pgrep matches both chromium and chromium-browser.
+# Relaunch Chromium if it dies. Erkennung ueber die Cmdline (--kiosk --app=), die
+# unabhaengig vom comm-Namen des Chromium-Wrappers ist.
+export DISPLAY="\${DISPLAY:-:0}"
+export XAUTHORITY="\${XAUTHORITY:-\$HOME/.Xauthority}"
 sleep 20   # dem ersten Autostart-Launch Zeit geben
 while true; do
     if ! pgrep -f -- '--kiosk --app=' > /dev/null; then
