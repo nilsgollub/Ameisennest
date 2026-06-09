@@ -186,12 +186,16 @@ EOF
 # AntSim beim Boot aktualisieren (self-update): git pull im Klon, bevor der
 # Screensaver geladen wird. Laeuft parallel zum Kiosk-Start; das committete dist/
 # wird sofort lokal ausgeliefert (kein Build noetig).
+# Retry mit Backoff: beim Boot steht das WLAN oft noch nicht — ein einzelner
+# fehlgeschlagener Pull liesse den Kiosk bis zum naechsten Reboot auf der alten
+# Version. 5 Versuche a 10s ueberbruecken die Netz-Anlaufzeit; schlaegt es ganz
+# fehl, laeuft der Kiosk einfach mit dem committeten dist/ weiter (kein Blackout).
 cat > "${AUTOSTART_DIR}/formica-antsim-update.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Formica AntSim Auto-Update
-Comment=git pull the local AntSim screensaver on boot (self-update from GitHub)
-Exec=bash -lc 'git -C ${ANTSIM_DIR} pull --ff-only >> /home/${KIOSK_USER}/antsim-update.log 2>&1'
+Comment=git pull the local AntSim screensaver on boot (self-update from GitHub, retries while WLAN comes up)
+Exec=bash -lc 'for i in 1 2 3 4 5; do echo "[\$(date)] pull attempt \$i"; git -C ${ANTSIM_DIR} pull --ff-only && break; sleep 10; done >> /home/${KIOSK_USER}/antsim-update.log 2>&1'
 X-GNOME-Autostart-enabled=true
 Hidden=false
 NoDisplay=false
@@ -214,12 +218,50 @@ EOF
 #   --disk-cache-size=1     Disk-Cache praktisch aus → laedt nach jedem Deploy frisch
 #                           (verhindert "Load fail" auf alte, geloeschte JS-Chunks)
 
+# Chromium-Aufruf in ein Launcher-Skript faktorisieren, damit Autostart UND der
+# Watchdog (unten) exakt denselben Befehl nutzen.
+LAUNCHER="/home/${KIOSK_USER}/formica-launch-chromium.sh"
+cat > "${LAUNCHER}" << EOF
+#!/usr/bin/env bash
+exec ${CHROMIUM_BIN} --kiosk --app=${KIOSK_URL} --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain --check-for-update-interval=604800 --disable-features=TranslateUI --start-maximized --disk-cache-size=1
+EOF
+chmod +x "${LAUNCHER}"
+
 cat > "${AUTOSTART_DIR}/formica-kiosk.desktop" << EOF
 [Desktop Entry]
 Type=Application
 Name=Formica Kiosk
 Comment=FORMICA-OS Kiosk Chromium Vollbildanzeige
-Exec=${CHROMIUM_BIN} --kiosk --app=${KIOSK_URL} --no-sandbox --disable-infobars --noerrdialogs --disable-translate --overscroll-history-navigation=0 --password-store=basic --use-mock-keychain --check-for-update-interval=604800 --disable-features=TranslateUI --start-maximized --disk-cache-size=1
+Exec=${LAUNCHER}
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+# Watchdog: prueft alle 30s, ob Chromium laeuft, und startet es sonst neu. Laeuft in
+# der X-Session (erbt DISPLAY/XAUTHORITY), deshalb kann es den Browser direkt wieder
+# hochziehen — der letzte Single-Point-of-Failure (Browser-Crash/Hang ohne Reboot).
+WATCHDOG="/home/${KIOSK_USER}/formica-watchdog.sh"
+cat > "${WATCHDOG}" << EOF
+#!/usr/bin/env bash
+# Relaunch Chromium if it dies. pgrep matches both chromium and chromium-browser.
+sleep 20   # dem ersten Autostart-Launch Zeit geben
+while true; do
+    if ! pgrep -f -- '--kiosk --app=' > /dev/null; then
+        echo "[\$(date)] chromium not running -> relaunch" >> /home/${KIOSK_USER}/formica-watchdog.log
+        "${LAUNCHER}" >> /home/${KIOSK_USER}/formica-watchdog.log 2>&1 &
+    fi
+    sleep 30
+done
+EOF
+chmod +x "${WATCHDOG}"
+
+cat > "${AUTOSTART_DIR}/formica-watchdog.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=Formica Kiosk Watchdog
+Comment=Chromium neu starten, falls der Kiosk-Browser abstuerzt oder haengt
+Exec=${WATCHDOG}
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
