@@ -1,0 +1,57 @@
+{
+  "firmware/esp32_cam/include/camera_pins.h": {
+    "mtime": 1784757905.3946934,
+    "ast_hash": "efa64c4f8f829a1fee39a7bfd8d70402",
+    "semantic_hash": "efa64c4f8f829a1fee39a7bfd8d70402"
+  },
+  "firmware/esp32_cam/src/main.cpp": {
+    "mtime": 1784757905.3946934,
+    "ast_hash": "06c60ebfebdbe23b7b10bccf51125382",
+    "semantic_hash": "06c60ebfebdbe23b7b10bccf51125382"
+  },
+  "formica-os-logbook.jsx": {
+    "mtime": 1784757905.3946934,
+    "ast_hash": "85fe040860e36a7f123151247d316862",
+    "semantic_hash": "85fe040860e36a7f123151247d316862"
+  },
+  "kiosk/app.js": {
+    "mtime": 1784757905.395028,
+    "ast_hash": "19af7a184ee53a7d232dc4fdabe3830f",
+    "semantic_hash": "19af7a184ee53a7d232dc4fdabe3830f"
+  },
+  "kiosk/reboot-server.py": {
+    "mtime": 1784757905.3952925,
+    "ast_hash": "b9372110aeaf41233ceb786ebe556e4e",
+    "semantic_hash": "b9372110aeaf41233ceb786ebe556e4e"
+  },
+  "scripts/fusion360/layer_01_water.py": {
+    "mtime": 1784757905.3955119,
+    "ast_hash": "19e0ae76128bed166672c6a9eb6569f6",
+    "semantic_hash": "19e0ae76128bed166672c6a9eb6569f6"
+  },
+  "scripts/fusion360/layer_02_humidity.py": {
+    "mtime": 1784757905.3955119,
+    "ast_hash": "6056279a8af68b277d71719cff18b1e3",
+    "semantic_hash": "6056279a8af68b277d71719cff18b1e3"
+  },
+  "scripts/fusion360/layer_03_queen.py": {
+    "mtime": 1784757905.3955119,
+    "ast_hash": "77628d7b135b444493463a9655194852",
+    "semantic_hash": "77628d7b135b444493463a9655194852"
+  },
+  "scripts/fusion360/parameters.py": {
+    "mtime": 1784757905.3955119,
+    "ast_hash": "ab120b86f4261cf1c297467c007497e9",
+    "semantic_hash": "ab120b86f4261cf1c297467c007497e9"
+  },
+  "scripts/fusion360/verify_dxf.py": {
+    "mtime": 1784757905.3955119,
+    "ast_hash": "2fdbdcefa3f1b9a099ac3192bed4b3db",
+    "semantic_hash": "2fdbdcefa3f1b9a099ac3192bed4b3db"
+  },
+  "scripts/setup_kiosk_rpi.sh": {
+    "mtime": 1784757905.3955119,
+    "ast_hash": "6d9d72610a69dce548755f0455282e58",
+    "semantic_hash": "6d9d72610a69dce548755f0455282e58"
+  }
+}

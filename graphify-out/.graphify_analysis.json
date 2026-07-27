@@ -1,0 +1,237 @@
+{
+  "communities": {
+    "0": [
+      "drawing",
+      "namedtuple",
+      "path",
+      "scripts_fusion360_parameters",
+      "scripts_fusion360_parameters_guide_pin_positions",
+      "scripts_fusion360_parameters_nest_bounds",
+      "scripts_fusion360_parameters_rationale_1",
+      "scripts_fusion360_parameters_rationale_42",
+      "scripts_fusion360_parameters_rationale_60",
+      "scripts_fusion360_verify_dxf",
+      "scripts_fusion360_verify_dxf_bounding_box",
+      "scripts_fusion360_verify_dxf_check_guide_pins",
+      "scripts_fusion360_verify_dxf_check_min_wall",
+      "scripts_fusion360_verify_dxf_check_plate_outline",
+      "scripts_fusion360_verify_dxf_check_port",
+      "scripts_fusion360_verify_dxf_checkresult",
+      "scripts_fusion360_verify_dxf_circles_in_dxf",
+      "scripts_fusion360_verify_dxf_main",
+      "scripts_fusion360_verify_dxf_rationale_1",
+      "scripts_fusion360_verify_dxf_rationale_123",
+      "scripts_fusion360_verify_dxf_rationale_132",
+      "scripts_fusion360_verify_dxf_rationale_150",
+      "scripts_fusion360_verify_dxf_rationale_42",
+      "scripts_fusion360_verify_dxf_rationale_55",
+      "scripts_fusion360_verify_dxf_rationale_71",
+      "scripts_fusion360_verify_dxf_rationale_83",
+      "scripts_fusion360_verify_dxf_verify_file"
+    ],
+    "1": [
+      "byte",
+      "esp_err_t",
+      "firmware_esp32_cam_include_camera_pins",
+      "firmware_esp32_cam_src_main",
+      "firmware_esp32_cam_src_main_als_init",
+      "firmware_esp32_cam_src_main_als_read_publish",
+      "firmware_esp32_cam_src_main_camera_init",
+      "firmware_esp32_cam_src_main_capture_handler",
+      "firmware_esp32_cam_src_main_http_server_start",
+      "firmware_esp32_cam_src_main_ir_handler",
+      "firmware_esp32_cam_src_main_ir_set",
+      "firmware_esp32_cam_src_main_loop",
+      "firmware_esp32_cam_src_main_mqtt_callback",
+      "firmware_esp32_cam_src_main_mqtt_connect",
+      "firmware_esp32_cam_src_main_mqtt_publish_heartbeat",
+      "firmware_esp32_cam_src_main_setup",
+      "firmware_esp32_cam_src_main_status_handler",
+      "firmware_esp32_cam_src_main_stream_task",
+      "firmware_esp32_cam_src_main_wifi_setup",
+      "firmware_esp32_cam_src_main_write_chunked",
+      "httpd_req_t",
+      "wificlient"
+    ],
+    "2": [
+      "kiosk_app",
+      "kiosk_app_camstream",
+      "kiosk_app_cancelhold",
+      "kiosk_app_currentirlevel",
+      "kiosk_app_currentzoom",
+      "kiosk_app_hideoverlay",
+      "kiosk_app_irbtns",
+      "kiosk_app_overlaytext",
+      "kiosk_app_panx",
+      "kiosk_app_pany",
+      "kiosk_app_rebootbtn",
+      "kiosk_app_reloadbtn",
+      "kiosk_app_screensaverclose",
+      "kiosk_app_screensaverel",
+      "kiosk_app_screensaverframe",
+      "kiosk_app_streamcontainer",
+      "kiosk_app_streamoverlay",
+      "kiosk_app_zoomvalue"
+    ],
+    "3": [
+      "formica_os_logbook",
+      "formica_os_logbook_adddays",
+      "formica_os_logbook_dayssince",
+      "formica_os_logbook_fmt",
+      "formica_os_logbook_formicariumlog",
+      "formica_os_logbook_found_date",
+      "formica_os_logbook_log_entries_init",
+      "formica_os_logbook_milestones",
+      "formica_os_logbook_status_color"
+    ],
+    "4": [
+      "profile",
+      "scripts_fusion360_layer_01_water",
+      "scripts_fusion360_layer_01_water_largest_profile",
+      "scripts_fusion360_layer_01_water_mm",
+      "scripts_fusion360_layer_01_water_py_sketch",
+      "scripts_fusion360_layer_01_water_rationale_1",
+      "scripts_fusion360_layer_01_water_rationale_111",
+      "scripts_fusion360_layer_01_water_rationale_35",
+      "scripts_fusion360_layer_01_water_run"
+    ],
+    "5": [
+      "scripts_fusion360_layer_02_humidity",
+      "scripts_fusion360_layer_02_humidity_add_pill",
+      "scripts_fusion360_layer_02_humidity_mm",
+      "scripts_fusion360_layer_02_humidity_py_sketch",
+      "scripts_fusion360_layer_02_humidity_rationale_1",
+      "scripts_fusion360_layer_02_humidity_rationale_54",
+      "scripts_fusion360_layer_02_humidity_run"
+    ],
+    "6": [
+      "scripts_fusion360_layer_03_queen",
+      "scripts_fusion360_layer_03_queen_add_pill",
+      "scripts_fusion360_layer_03_queen_mm",
+      "scripts_fusion360_layer_03_queen_py_sketch",
+      "scripts_fusion360_layer_03_queen_rationale_1",
+      "scripts_fusion360_layer_03_queen_rationale_49",
+      "scripts_fusion360_layer_03_queen_run"
+    ],
+    "7": [
+      "basehttprequesthandler",
+      "kiosk_reboot_server",
+      "kiosk_reboot_server_handler",
+      "kiosk_reboot_server_handler_do_get",
+      "kiosk_reboot_server_handler_log_message"
+    ],
+    "8": [
+      "scripts_setup_kiosk_rpi",
+      "scripts_setup_kiosk_rpi_log_err",
+      "scripts_setup_kiosk_rpi_log_info",
+      "scripts_setup_kiosk_rpi_log_ok",
+      "scripts_setup_kiosk_rpi_sh__entry"
+    ],
+    "9": [
+      "kiosk_app_applypan",
+      "kiosk_app_applyzoom",
+      "kiosk_app_movepan",
+      "kiosk_app_savepan"
+    ],
+    "10": [
+      "kiosk_app_reconnectstream",
+      "kiosk_app_resetwatchdog",
+      "kiosk_app_showoverlay",
+      "kiosk_app_starthold"
+    ],
+    "11": [
+      "kiosk_app_hidescreensaver",
+      "kiosk_app_resetscreensavertimer",
+      "kiosk_app_showscreensaver"
+    ],
+    "12": [
+      "kiosk_app_ir_url",
+      "kiosk_app_sendirlevel",
+      "kiosk_app_updateirui"
+    ]
+  },
+  "cohesion": {
+    "0": 0.1396011396011396,
+    "1": 0.1645021645021645,
+    "2": 0.1111111111111111,
+    "3": 0.3333333333333333,
+    "4": 0.2777777777777778,
+    "5": 0.42857142857142855,
+    "6": 0.42857142857142855,
+    "7": 0.4,
+    "8": 0.7,
+    "9": 0.6666666666666666,
+    "10": 0.5,
+    "11": 0.6666666666666666,
+    "12": 0.6666666666666666
+  },
+  "gods": [
+    {
+      "id": "scripts_fusion360_verify_dxf_check_guide_pins",
+      "label": "check_guide_pins()",
+      "degree": 8
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_verify_file",
+      "label": "verify_file()",
+      "degree": 8
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_check_min_wall",
+      "label": "check_min_wall()",
+      "degree": 7
+    },
+    {
+      "id": "firmware_esp32_cam_src_main_setup",
+      "label": "setup()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_checkresult",
+      "label": "CheckResult",
+      "degree": 6
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_circles_in_dxf",
+      "label": "_circles_in_dxf()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_bounding_box",
+      "label": "_bounding_box()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_check_plate_outline",
+      "label": "check_plate_outline()",
+      "degree": 6
+    },
+    {
+      "id": "scripts_fusion360_verify_dxf_check_port",
+      "label": "check_port()",
+      "degree": 6
+    },
+    {
+      "id": "firmware_esp32_cam_src_main_loop",
+      "label": "loop()",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "check_guide_pins()",
+      "target": "guide_pin_positions()",
+      "source_files": [
+        "scripts/fusion360/verify_dxf.py",
+        "scripts/fusion360/parameters.py"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "cross-file semantic connection"
+    }
+  ],
+  "tokens": {
+    "input": 0,
+    "output": 0
+  }
+}
