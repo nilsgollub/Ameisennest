@@ -1,6 +1,12 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+> **Projekt ruht (Stand 2026-09-24).** Letzte Commits Anfang Juni 2026,
+> `STATUS.md` steht noch auf Kolonie-Tag T+2 (27.05.2026) und ist veraltet.
+> Das Kamera-Board (DFRobot DFR1154, früher `formicarium-cam1`,
+> 192.168.1.201) wurde umgewidmet und läuft jetzt als Frigate-Kamera im
+> separaten Repo `esp32-cam-surveillance` — für dieses Projekt nicht mehr
+> verfügbar. Vor Arbeit hier zuerst mit dem Nutzer den aktuellen
+> Kolonie- und Hardware-Stand klären.
 
 ---
 
@@ -15,7 +21,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Umgebungs-Aufteilung
 
 Diese Instanz (Claude Code / lokal) ist zuständig für:
-- ESP32 Firmware (`firmware/esp32_formicarium/`)
+- ESP32 Firmware (`firmware/esp32_cam/`, geplant: `firmware/esp32_formicarium/` für den Sensor-Node)
+- Kiosk (`kiosk/`: 7"-Touchscreen-RPi, zeigt AntSim lokal, Chromium-Watchdog)
 - Python Scripts (`scripts/`)
 - Home Assistant YAML (`homeassistant/packages/`)
 - Fusion 360 via MCP — CAD-Design des Korknests
@@ -61,20 +68,16 @@ formicarium/node1/cmd/light          # int 0–255, Rotlicht PWM
 formicarium/node1/cmd/feeder         # bool, Servo-Trigger
 ```
 
-**Geplante Repo-Struktur:**
+**Repo-Struktur** (vorhanden; `firmware/esp32_formicarium/`, `logbook/` und
+`scripts/tests/` sind nur geplant):
 ```
-firmware/esp32_formicarium/
-  platformio.ini
-  src/main.cpp
-homeassistant/packages/
-  formicarium.yaml
-scripts/
-  datalogger.py
-cad/korknest_v1/
-  exports/layer_{nn}_{name}.dxf
-logbook/entries/
-  YYYY-MM-DD_T{tag}.md
-formica-os-logbook.jsx   ← React Logbuch (Cloud-Artifact, hier zur Versionierung)
+firmware/esp32_cam/        ← PlatformIO, Kamera-Firmware (Board inzwischen umgewidmet)
+homeassistant/packages/    ← formicarium.yaml
+kiosk/                     ← index.html/app.js/style.css + reboot-server.py
+scripts/                   ← u.a. scripts/fusion360/
+cad/korknest_v1/exports/   ← layer_{nn}_{name}.dxf
+docs/
+formica-os-logbook.jsx     ← React Logbuch (Cloud-Artifact, hier zur Versionierung)
 ```
 
 ---
@@ -106,7 +109,7 @@ ha core check
 
 ---
 
-## Code-Standards (KRITISCH)
+## Code-Standards
 
 1. **Vollständige Codeblöcke** — keine Platzhalter, kein `// wie vorher`, keine TODOs ohne Implementierung
 2. **PlatformIO-Struktur** — `src/main.cpp` + `platformio.ini`, kein Arduino IDE Format
