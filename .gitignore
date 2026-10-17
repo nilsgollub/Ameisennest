@@ -12,3 +12,6 @@ __pycache__/
 # CAD
 *.f3d
 *.f3z
+
+# graphify-Wissensgraph (nächtlicher Personal-Assistant-Refresh): regenerierbar, nicht versionieren
+graphify-out/
